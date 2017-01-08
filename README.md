@@ -25,6 +25,7 @@ One way to completely avoid the rate limit is to create a dedicated webhook for 
 Error handling for other webhook errors are coming soon(tm). At present, chances are that the final totals will be displayed in the client anyway.
 
 Other planned features:
+* Fix "Show User Details" so it will actually show them if clicked again after they were entered.
 * Show the last roll in a local text box rather than sending to the channel.
 * Display tracebacks of unhandled errors to user.
 * Custom message for exceptional success.
