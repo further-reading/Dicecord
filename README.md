@@ -21,13 +21,11 @@ Webhooks have a "rate limit" that will cause commands to fail if too many are se
 
 One way to completely avoid the rate limit is to create a dedicated webhook for each player. The downside of this approach is that the channel becomes pretty hard to read unless switched to compact mode.
 
-## Other Notes
-Error handling for other webhook errors are coming soon(tm). At present, chances are that the final totals will be displayed in the client anyway.
-
-Other planned features:
+## Other planned features
 * Fix "Show User Details" so it will actually show them if clicked again after they were entered.
 * Show the last roll in a local text box rather than sending to the channel.
 * Display tracebacks of unhandled errors to user.
+* Error handling for other webhook errors. At present, chances are that the final totals will be displayed in the client anyway.
 * Custom message for exceptional success.
 * Extended rolls.
 * Additional client messaging.
