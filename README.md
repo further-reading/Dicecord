@@ -5,7 +5,7 @@ A python based client for rolling dice and printing results in Discord channel v
 ![Client](https://raw.githubusercontent.com/further-reading/Discord-Dice-Roller/master/client.PNG "Client")  
 Before rolling you need to add your user details. Click on "Show User Details" on top left of window and enter the following:
 * Webhook URL: A [webhook](https://support.discordapp.com/hc/en-us/articles/228383668-Intro-to-Webhooks) for the channel that will share your rolls.
-* Discord UserID: A numerical ID for your Discord username. You can get this by activating developer mode, right clicking on your name and selecting "Copy ID." When the correct ID is entered the results will include @mentions for you, which cna make it easier to identify your own rolls.
+* Discord UserID: A numerical ID for your Discord username. You can get this by activating developer mode, right clicking on your name and selecting "Copy ID." When the correct ID is entered the results will include @mentions for you, which can make it easier to identify your own rolls.
 
 When these items are added you will be able to make rolls. By default it will do a normal Chronicles fo darkenss roll (rolls a number of D10s, 8 or above is a success, 10s grant additional rerolls).  
 After making the roll, the client will post the result of each die to the channel before telling the final results. To avoid rate limiting (and add drama!) each message is sent after a delay of a second.  
