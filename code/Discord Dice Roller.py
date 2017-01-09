@@ -9,6 +9,7 @@
     
 
 import http.client
+import string
 import random
 import time
 from character import Character
@@ -20,10 +21,13 @@ def send(message, webhook):
     '''
     
     conn = http.client.HTTPSConnection("discordapp.com")
-    payload = "------WebKitFormBoundary7MA4YWxkTrZu0gW\r\nContent-Disposition: form-data; name=\"content\"\r\n\r\n" + message + "\r\n------WebKitFormBoundary7MA4YWxkTrZu0gW--"
+    sep = "--" + ''.join(random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for _ in range(8))
+    payload = sep + "\r\nContent-Disposition: form-data; name=\"content\"\r\n\r\n" + message + "\r\n" + sep + "--"
+
+
 
     headers = {
-    'content-type': "multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW",
+    'content-type': "multipart/form-data; boundary=" + sep[2:],
     'cache-control': "no-cache",
     }
 
@@ -75,6 +79,9 @@ def chance_handler():
         console.config(text= "User Details Missing.")
         return
     
+    console.config(text= "Starting Chance Roll.")
+    console.update_idletasks()
+
     messages = char.roll_chance()
 
     #waits a random amount of time, used to help prevent multiple users spamming channel at once
@@ -99,6 +106,10 @@ def roll_handler():
         #Tell user something is missing
         console.config(text= "User Details Missing.")
         return
+
+
+    console.config(text= "Starting Roll.")
+    console.update_idletasks()
 
     try:
         #check if int entered
@@ -199,6 +210,8 @@ def setup_screen():
     webhook_entry.grid(row = 0, column=1, pady=5, padx=5, sticky=W)
     userID_entry.grid(row = 1, column=1, pady=5, padx=5)
     save_button.grid(pady=5, padx=5)
+    webhook_entry.insert(0, webhook.get())
+    userID_entry.insert(0, userID.get()[2:-1])
     
     top.mainloop()
 
