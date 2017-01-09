@@ -7,7 +7,7 @@ Before rolling you need to add your user details. Click on "Show User Details" o
 * Webhook URL: A [webhook](https://support.discordapp.com/hc/en-us/articles/228383668-Intro-to-Webhooks) for the channel that will share your rolls.
 * Discord UserID: A numerical ID for your Discord username. You can get this by activating developer mode, right clicking on your name and selecting "Copy ID." When the correct ID is entered the results will include @mentions for you, which can make it easier to identify your own rolls.
 
-When these items are added you will be able to make rolls. By default it will do a normal Chronicles of darkenss roll (rolls a number of D10s, 8 or above is a success, 10s grant additional rerolls).  
+When these items are added you will be able to make rolls. By default it will do a normal Chronicles of Darkness roll (rolls a number of D10s, 8 or above is a success, 10s grant additional rerolls).  
 After making the roll, the client will post the result of each die to the channel before telling the final results. To avoid rate limiting (and add drama!) each message is sent after a delay of a second.  
 Once the total successes are printed on the channel it will display it in the client too.  
 You can change whether it is 10, 9 or 8 again using the radio buttons on the right.  
@@ -22,7 +22,6 @@ Webhooks have a "rate limit" that will cause commands to fail if too many are se
 One way to completely avoid the rate limit is to create a dedicated webhook for each player. The downside of this approach is that the channel becomes pretty hard to read unless switched to compact mode.
 
 ## Other planned features
-* Fix "Show User Details" so it will actually show them if clicked again after they were entered.
 * Show the last roll in a local text box rather than sending to the channel.
 * Display tracebacks of unhandled errors to user.
 * Error handling for other webhook errors. At present, chances are that the final totals will be displayed in the client anyway.
