@@ -1,4 +1,4 @@
-# Discord Dice Roller
+# Dicecord - The Discord Diceroller
 A python based client for rolling dice and printing results in Discord channel via webhooks. Uses Chronicles of Darkenss ruleset.
 
 ## Instructions
