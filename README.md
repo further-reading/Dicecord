@@ -26,3 +26,4 @@ One way to avoid the rate limit is to create a dedicated webhook for each player
 * Custom message for exceptional success.
 * Extended rolls.
 * Additional client messaging.
+* Character sheet display - A preview named "sheetUI.py" can be found in the code folder.
