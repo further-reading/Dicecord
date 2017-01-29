@@ -33,13 +33,16 @@ class Character:
 
         #max mana depends on gnosis
         if self.stats['gnosis'] <= 5:
-            self.stats['mana']['max'] = 5 + self.stats['gnosis']
+            self.stats['mana'] = 5 + self.stats['gnosis']
         elif self.stats['gnosis'] <= 8:
-            self.stats['mana']['max'] = 20 + 10*(self.stats['gnosis'] - 6)
+            self.stats['mana'] = 20 + 10*(self.stats['gnosis'] - 6)
         elif self.stats['gnosis'] == 9:
-            self.stats['mana']['max'] = 50
+            self.stats['mana'] = 50
         else:
-            self.stats['mana']['max'] = 75
+            self.stats['mana'] = 75
+
+        #Willpower = Resolve + Composure
+        self.stats['willpower'] = self.stats['resolve'] + self.stats['composure']
 
         #Max health = Stamina + Size
         self.stats['health'][0] = self.stats['stamina'] + self.stats['size']
@@ -52,32 +55,32 @@ class Character:
 
         ##defense is lower of dex and wits
         #BUG: self.defense calculation is causing "TypeError: 'builtin_function_or_method' object is not subscriptable"
-        ##self.defense = min[stats['attributes']['physical']['dexterity'], stats['attributes']['mental']['wits']]
+        self.stats['defense'] = min(self.stats['dexterity'], self.stats['wits'])
 
-    def earn_xp(self, xp_type, amount):
-        '''
-        Adds xp
-        '''
-        self.stats['xp'][xp_type] += amount
-
-    def spend_xp(self, stat, xp_type):
-        '''
-        Spend xp to update stat.
-        '''
-        #costs depend on category of stat.
-        pass
-
-    def earn_beat(self, beat_type):
-        '''
-        Earn a beat, add 1 xp if 5 beats reached
-        '''
-        
-        self.stats['beats'][beat_type] += 1
-        if self.stats['beats'][beat_type] == 5:
-            self.stats['beats'][beat_type] = 0
-            self.earn_xp(beat_type, 1)
-            return "Beat converted to xp."
-        return "Beat added."
+##    def earn_xp(self, xp_type, amount):
+##        '''
+##        Adds xp
+##        '''
+##        self.stats['xp'][xp_type] += amount
+##
+##    def spend_xp(self, stat, xp_type):
+##        '''
+##        Spend xp to update stat.
+##        '''
+##        #costs depend on category of stat.
+##        pass
+##
+##    def earn_beat(self, beat_type):
+##        '''
+##        Earn a beat, add 1 xp if 5 beats reached
+##        '''
+##        
+##        self.stats['beats'][beat_type] += 1
+##        if self.stats['beats'][beat_type] == 5:
+##            self.stats['beats'][beat_type] = 0
+##            self.earn_xp(beat_type, 1)
+##            return "Beat converted to xp."
+##        return "Beat added."
     
     def state_health(self):
         '''

@@ -45,14 +45,20 @@ STATS = {'intelligence' : 1,
          'numbus' : '',
          'nimbus tilt' : {},
          'praxes' : {},
-         'mana' : {'current' : 0},
+         'mana' : 0,
+         'mana used' : 0,
+         'mana extra' : 0,
+         'willpower' : 0,
+         'willpower filled'  : 0,
          'health' : [0,#max (derived)
                      0,#bashing
                      0,#lethal
                      0 #agg
                      ],
-         'xp' : {"standard": 0, "arcane": 0},
-         'beats' : {"standard": 0, "arcane": 0},
+         'xp' : 0,
+         'beats' : 0,
+         'arcane xp' : 0,
+         'arcane beats' : 0,
          'death' : 0,
           'fate' : 0,
           'forces' : 0,
@@ -72,7 +78,13 @@ STATS = {'intelligence' : 1,
          'legacy attainments' : [],
          'virtue' : '',
          'vice' : '',
-         'path': ''}
+         'path': '',
+         'rote skill' : set([]),
+         'armor' : 0,
+         'initiative mod' : 0,
+         'size mod' : 0,
+         'speed mod' : 0,
+         'defense mod': 0}
 
 HEADERS = [['shadow name', 'user id', 'webhook'],
            ['concept','virtue','vice'],
@@ -90,11 +102,6 @@ ARCANA = ['death',
           'spirit',
           'space',
           'time']
-
-ROTE_SPEC = {'adamantine arrow' : [],
-             'mysterium' : [],
-             'silver ladder' : [],
-             'free council' : []}
 
 
 ATTRIBUTE_TYPE = {'mental' : ['intelligence', 'wits', 'resolve'],
@@ -126,3 +133,6 @@ SKILL_TYPE = {'mental': ['academics',
                       'socialize',
                       'streetwise',
                       'subterfuge']}
+
+SKILLS = list(SKILL_TYPE.values())
+SKILLS = sum(SKILLS, [])
