@@ -22,12 +22,30 @@ class Sheet(QWidget):
     def initUI(self):
         #each section constructed as dedicated object
         self.char_info = Character_Info(self.character)
-        self.attributes = Attributes(self.character)
+
+        #attributes
+        self.attributes_label = QLabel("=====ATTRIBUTES=====")
+        self.attributes_label.setStyleSheet("QLabel { font: 13pt }" )
+        self.attributes_label.setAlignment(Qt.AlignCenter)
+        self.attribute_mental_group = ATTRIBUTE_TYPE['mental']
+        self.attribute_physical_group = ATTRIBUTE_TYPE['physical']
+        self.attribute_social_group = ATTRIBUTE_TYPE['social']
+
+        self.attribute_mental = Stat_Col(self.attribute_mental_group, self.character)
+        self.attribute_physical = Stat_Col(self.attribute_physical_group, self.character)
+        self.attribute_social =  Stat_Col(self.attribute_social_group, self.character)
+
+        #others
         self.skills = Skills(self.character)
         self.arcana = Arcana(self.character)
         self.merits = Merits(self.character)
+        self.mana = Mana(self.character)
         self.derivitives = Derivitives(self.character)
-        self.big_stats = Big_Stats(self.character)
+
+        #Health
+        self.health = Health(self.character)
+        #Willpower
+        self.willpower = Willpower(self.character)
 
         #Gnosis
         gnosis = Stat(self.character, 'gnosis', maximum = 10, small=False)
@@ -35,7 +53,6 @@ class Sheet(QWidget):
         
         #Wisdom
         wisdom = Stat(self.character, 'wisdom', maximum = 10, small=False)
-        wisdom.setMaximumSize(wisdom.sizeHint())
 
         #button to turn on edit mode
         self.edit_button = QPushButton("Edit")
@@ -48,27 +65,40 @@ class Sheet(QWidget):
 
         grid = QGridLayout()
         self.setLayout(grid)
+        grid.setAlignment(Qt.AlignTop)
 
         
-        grid.addWidget(self.edit_button, 0, 0)
-        grid.addWidget(self.test_button, 0, 1)
-        grid.addWidget(self.char_info, 1, 0, 1, 3)
-        grid.addWidget(self.attributes, 2, 0, 1, 3) 
-        grid.addWidget(self.skills,3,0,3,1)
-        grid.addWidget(self.arcana,3,1)
-        grid.addWidget(self.merits,4,1)
-        grid.addWidget(self.derivitives,5,1)
-        grid.setAlignment(self.derivitives, Qt.AlignBottom)
+        #top
+        grid.addWidget(self.edit_button, 0,0)
+        grid.addWidget(self.test_button, 0,1)
+        grid.addWidget(self.char_info,1,0,1,3)
+        grid.addWidget(self.attributes_label,2,0,1,3)
 
+        #left side
+        grid.addWidget(self.attribute_mental,3,0)
+        grid.addWidget(self.skills,4,0,3,1)
+
+        #middle
+        grid.addWidget(self.attribute_physical, 3,1)
+        grid.addWidget(self.arcana, 4,1)
+        grid.addWidget(self.merits, 5,1)
+        grid.addWidget(self.derivitives, 6,1)
+        grid.setAlignment(self.derivitives, Qt.AlignBottom)
+        
+        #right
         last_col = QVBoxLayout()
-        last_col.setAlignment(Qt.AlignTop)
-        last_col.addWidget(self.big_stats)
+        last_col.addWidget(self.attribute_social)
+        last_col.addWidget(self.health)
+        last_col.addWidget(self.willpower)
+        last_col.setAlignment(self.willpower, Qt.AlignHCenter)
         last_col.addWidget(gnosis)
         last_col.setAlignment(gnosis, Qt.AlignHCenter)
         last_col.addWidget(wisdom)
         last_col.setAlignment(wisdom, Qt.AlignHCenter)
+        last_col.addWidget(self.mana)
+        last_col.setAlignment(self.mana, Qt.AlignHCenter)
 
-        grid.addLayout(last_col,3,2,3,1)
+        grid.addLayout(last_col,3,2,4,1)
         grid.setAlignment(last_col, Qt.AlignTop)
         
 
@@ -81,7 +111,8 @@ class Sheet(QWidget):
             self.char_info.save_changes()
             self.character.update_derivitives()
             self.derivitives.update_all()
-            self.big_stats.update()
+            self.willpower.update()
+            self.health.update_max()
             #max mana/health update
 
     def test(self):
@@ -237,7 +268,6 @@ class Arcana(QWidget):
         self.setStyleSheet("QLabel { font: 13pt}")
         self.character = character
         self.initUI()
-        self.setMaximumHeight(self.sizeHint().height())
 
     def initUI(self):
         box = QVBoxLayout()
@@ -250,10 +280,9 @@ class Arcana(QWidget):
 
         self.arcana = Stat_Col(ARCANA, self.character)
 
+        box.setAlignment(Qt.AlignTop)
         box.addWidget(overall_label)
-        box.setAlignment(overall_label, Qt.AlignTop)
         box.addWidget(self.arcana)
-        box.setAlignment(self.arcana, Qt.AlignTop)
 
 class Merits(QWidget):
     '''
@@ -277,7 +306,7 @@ class Merits(QWidget):
         self.setLayout(self.grid)
         
         self.label = QLabel('===MERITS===')
-        self.grid.addWidget(self.label, 0, 0, 1, 2)
+        self.grid.addWidget(self.label, 0, 0, 1, 3)
         self.grid.setAlignment(Qt.AlignTop)
         self.grid.setAlignment(self.label, Qt.AlignHCenter)
         
@@ -299,17 +328,15 @@ class Merits(QWidget):
             #delete buttons are added to a button group with their row as an ID
             self.delete_buttons.addButton(delete_button,self.row)
             
-            self.grid.addWidget(self.merits[self.row][0] ,self.row,0)
-            self.grid.addWidget(self.merits[self.row][1] ,self.row,1)
+            self.grid.addWidget(self.merits[self.row][1] ,self.row,0)
+            self.grid.addWidget(self.merits[self.row][0] ,self.row,1,1,2)
             
             self.row += 1
         #Add the "add new" button for adding new merits
         self.new_button = QPushButton("Add New")
         self.new_button.setMaximumWidth(60)
-        self.grid.addWidget(self.new_button, self.row, 0)
+        self.grid.addWidget(self.new_button, self.row, 0,1,3)
         self.new_button.clicked.connect(self.add_new)
-        #for some reason alignment goes nuts without this line
-        self.grid.setAlignment(self.new_button, Qt.AlignTop)
 
 
     def buttonClickedSlot(self,index):
@@ -334,9 +361,6 @@ class Merits(QWidget):
         #remove associated data
         del self.character.stats['merits'][self.merits[index][2]]
         del self.merits[index]
-
-        #I toyed with adding code to reorder the IDs to make upfor the missing one but it is quite difficult
-        #No need to even do it though since new items will always add to end anyway
             
 
     def add_new(self):
@@ -364,21 +388,21 @@ class Merits(QWidget):
             delete_button.setMaximumWidth(15)
             delete_button.setMaximumHeight(17)
             self.delete_buttons.addButton(delete_button,self.row)
-            #adds it to tge self.merits dict with current value of self.row as the key
+            #adds it to the self.merits dict with current value of self.row as the key
             self.merits[self.row] = [merit, delete_button, new]
 
             #remove the add new button
             self.grid.removeWidget(self.new_button)
 
             #add the new Stat widget and delete button
-            self.grid.addWidget(self.merits[self.row][0] ,self.row,0)
-            self.grid.addWidget(self.merits[self.row][1] ,self.row,1)
+            self.grid.addWidget(self.merits[self.row][1] ,self.row,0)
+            self.grid.addWidget(self.merits[self.row][0] ,self.row,1,1,2)
 
             #add 1 to self.row
             self.row += 1
 
             #add the new button back to end
-            self.grid.addWidget(self.new_button, self.row,0)
+            self.grid.addWidget(self.new_button, self.row,0,1,3)
 
 class Derivitives (QWidget):
     def __init__(self, character):
@@ -604,31 +628,6 @@ class Derivitives (QWidget):
         for stat in self.derived_stats:
             self.update_deriv(stat)
 
-class Big_Stats(QWidget):
-    def __init__(self, character):
-        super().__init__()
-        self.character = character
-        self.initUI()
-
-    def initUI(self):
-        box = QVBoxLayout()
-        self.setLayout(box)
-        box.setSpacing(5)
-        box.setContentsMargins(0,0,0,0)
-        box.setAlignment(Qt.AlignTop)
-        #Health
-        self.health = Health(self.character)
-        box.addWidget(self.health)
-        #Willpower
-        self.willpower = Willpower(self.character)
-        self.willpower.setMaximumWidth(self.willpower.sizeHint().width())
-        box.addWidget(self.willpower)
-        box.setAlignment(self.willpower, Qt.AlignHCenter)
-
-    def update(self):
-        self.willpower.update()
-        self.health.update_max()
-
 class Willpower (QWidget):
     '''
     Willpower with dots and bozes like this:
@@ -643,6 +642,7 @@ class Willpower (QWidget):
         self.filled = character.stats['willpower filled']
         self.setStyleSheet("QLabel { font: 13pt}")
         self.initUI()
+        self.setMaximumSize(self.sizeHint())
 
     def initUI(self):
         box = QVBoxLayout()
@@ -735,7 +735,7 @@ class Health (QWidget):
                 self.dots[x] = Dot(filled=True, type = "big")
             else:
                 self.dots[x] = Dot(filled=False, type = "big")
-            squares[x] = Square("health", self.character)
+            squares[x] = Square("health", self.character, index=x)
             grid.addWidget(self.dots[x],0,x)
             grid.addWidget(squares[x],1,x)
 
@@ -744,7 +744,7 @@ class Health (QWidget):
         self.health_group = Health_Group(squares, self.character)
 
         #add a click handler for the entire group
-        self.health_group.buttonClicked[int].connect(self.health_group.buttonClickedSlot)
+        self.health_group.buttonClicked[int].connect(self.health_group.change)
 
         box.addLayout(grid)
 
@@ -770,6 +770,9 @@ class Health_Group(QButtonGroup):
         for pos in buttons:
             #add buttons to group
             self.addButton(buttons[pos],pos)
+            buttons[pos].group = self
+            buttons[pos].setContextMenuPolicy(Qt.CustomContextMenu)
+            buttons[pos].customContextMenuRequested.connect(buttons[pos].reduce)
 
         #loop to initialise squares
         #counts from 0 to value starting with agg damage
@@ -789,12 +792,95 @@ class Health_Group(QButtonGroup):
             buttons[pos].select_Image()
             pos += 1
 
-    def buttonClickedSlot(self,index):
-        #will need to add 1 to clicked box
-        #check that all previous boxes are equal to or higher than new value
-        #clear all boxes after clicked index
-        #update health stat on character
-        pass
+    def change(self,index, reduce=False):
+        #change everything
+        if not reduce:
+            self.buttons[index].change_Image()
+        for button in range(1,index):
+            current = self.buttons[button].filled
+            if current < self.buttons[index].filled:
+                self.buttons[button].filled = self.buttons[index].filled
+                self.buttons[button].select_Image()
+
+        for button in range(index+1, 13):
+            current = self.buttons[button].filled
+            if current > self.buttons[index].filled:
+                self.buttons[button].filled = self.buttons[index].filled
+                self.buttons[button].select_Image()
+
+        #record changes
+        health = [0, 0, 0, 0]
+
+        for button in range(1,13):
+            rating = self.buttons[button].filled
+            health[rating] += 1
+
+        self.character.stats['health'][1:] = health[1:]
+
+class Mana(QWidget):
+    def __init__(self, character):
+        super().__init__()
+        self.character = character
+        self.initUI()
+        self.setMaximumSize(self.sizeHint())
+
+    def initUI(self):
+        self.grid = QGridLayout()
+        self.grid.setSpacing(5)
+        self.grid.setContentsMargins(0,0,0,0)
+        self.setLayout(self.grid)
+        self.grid.setAlignment(Qt.AlignHCenter|Qt.AlignTop)
+
+        #Overall
+        self.overall_label = QLabel("Mana")
+        self.overall_label.setStyleSheet("QLabel { font: 13pt}")
+
+        #Spend
+        self.spent_label = QLabel("Spent")
+        self.spent_label.setStyleSheet("QLabel {text-decoration: underline; font: 10pt}")
+        self.spent = QSpinBox()
+        self.spent.setValue(self.character.stats['mana spent'])
+        self.spent.setMaximumSize(QSize(35, 20))
+        self.spent.setMaximum(self.character.stats['mana'] + self.character.stats['mana mod'])
+        self.spent.valueChanged.connect(self.update_mana)
+
+        
+        #Current total
+        self.current_label = QLabel("Current")
+        self.current_label.setStyleSheet("QLabel {text-decoration: underline; font: 10pt}")
+        current_num = self.character.stats['mana'] + self.character.stats['mana mod'] - self.character.stats['mana spent']
+        self.current = Num_with_Line(str(current_num) + "/" + str(self.character.stats['mana']))
+
+        self.grid.addWidget(self.overall_label, 0, 0, 1, 2)
+        self.grid.setAlignment(self.overall_label, Qt.AlignHCenter)
+        self.grid.addWidget(self.spent_label, 1, 0)
+        self.grid.addWidget(self.current_label, 1, 1)
+        self.grid.addWidget(self.spent, 2, 0)
+        self.grid.addWidget(self.current, 2, 1)
+
+    def update_mana(self):
+        self.character.stats['mana spent'] = self.spent.value()
+        self.spent.setMaximum(self.character.stats['mana'] + self.character.stats['mana mod'])
+        
+        current_num = self.character.stats['mana'] + self.character.stats['mana mod'] - self.character.stats['mana spent']
+        self.current.change_text(str(current_num) + "/" + str(self.character.stats['mana']))
+
+class Hover_Label_Col(QWidget):
+    def __init__(self, title):
+        super().__init__()
+        self.title = "==" + title + "=="
+        self.initUI()
+
+    def initUI(self):
+        box = QVBoxLayout()
+        self.setLayout(box)
+        box.setSpacing(5)
+        box.setContentsMargins(0,0,0,0)
+        
+        title_label = QLabel(self.title)
+        title_label.setStyleSheet("Qlabel {font = 13pt}")
+
+        
 
 class Stat_Col(QWidget):
     def __init__(self, stats, character, type=""):
@@ -862,9 +948,6 @@ class Stat(QWidget):
         box.setContentsMargins(0,0,0,0)
         
         self.label = QLabel(self.name.title())
-        #For some reason the minimum size isn't set properly
-        #Correct size when multiplied by 1.3 
-        self.label.setMinimumWidth(self.label.sizeHint().width())
         box.addWidget(self.label)
 
         #it will initilaise with the dots filled accoridng to character.stats['name']
@@ -1009,11 +1092,13 @@ class Square(QAbstractButton):
     Object for the square.
     Sets the images for the square and image changing method
     '''
-    def __init__(self, stat, character, filled=0):
+    def __init__(self, stat, character, filled=0, index=None, group = None):
         super().__init__()
         self.filled = filled
+        self.index = index
         self.stat = stat
         self.character = character
+        self.group = None
         self.setCursor(QCursor(Qt.PointingHandCursor))
         self.squares = {0: r"images\square_unfilled.png",
                         1: r"images\square_one.png",
@@ -1045,12 +1130,22 @@ class Square(QAbstractButton):
                 self.character.stats['rote skill'].add(self.stat)
             else:
                 self.character.stats['rote skill'].remove(self.stat)
-            self.select_Image()
                 
         elif self.stat == 'health':
             self.filled += 1
             if self.filled == 4:
                 self.filled = 0
+
+        self.select_Image()
+
+    def reduce (self):
+        self.filled -= 1
+        if self.filled < 0:
+            self.filled = 3
+ 
+        self.select_Image()
+
+        self.group.change(self.index, reduce = True)
 
 class Squares_Group(QButtonGroup):
     '''
@@ -1092,9 +1187,7 @@ class Num_with_Line(QWidget):
     '''
     def __init__(self, text):
         super().__init__()
-        self.text = text
-        self.setMaximumWidth(15)
-        self.setMaximumHeight(15)
+        self.text = " " + text + " "
         self.initUI()
         
         
@@ -1105,32 +1198,21 @@ class Num_with_Line(QWidget):
         self.setLayout(self.grid)
         
         self.rating = QLabel(self.text)
+        self.rating.setStyleSheet("QLabel {text-decoration: underline}")
         self.rating.setAlignment(Qt.AlignCenter)
         
         self.grid.addWidget(self.rating,0,0)
-        
-
-    def paintEvent(self, event):
-        qp = QPainter()
-        qp.begin(self)
-        self.drawLine(qp)
-        qp.end()
-
-    def drawLine(self, qp):
-        size = self.size()
-        qp.setPen(Qt.black)
-        qp.drawLine(0,size.height()-1,size.width(),size.height()-1)
 
     def change_text(self, new_text):
-        self.text = new_text
-        self.rating.setText(new_text)
-        self.update()
+        self.text = " " + new_text + " "
+        self.rating.setText(self.text)
 
 if __name__ == '__main__':
     #code to open UI for testing
     app = QApplication(sys.argv)
     char = Character()
     char.stats['health'] = [1,1,1,1]
+    char.stats['merits']['test'] = 3
     test = Sheet(char)
     #test = Derivitives(char)
     test.show()
