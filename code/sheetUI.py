@@ -54,6 +54,15 @@ class Sheet(QWidget):
         #Wisdom
         wisdom = Stat(self.character, 'wisdom', maximum = 10, small=False)
 
+        #Conditions
+        conditions = Hover_Label_Col("Conditions", char, 'conditions')
+
+        #Aspirations
+        aspirations = Hover_Label_Col("Aspirations", char, 'aspirations')
+        
+        #Obsessions
+        obsessions = Hover_Label_Col("Obsessions", char, 'obsessions')
+
         #button to turn on edit mode
         self.edit_button = QPushButton("Edit")
         self.edit_button.setCheckable(True)
@@ -97,6 +106,12 @@ class Sheet(QWidget):
         last_col.setAlignment(wisdom, Qt.AlignHCenter)
         last_col.addWidget(self.mana)
         last_col.setAlignment(self.mana, Qt.AlignHCenter)
+        last_col.addWidget(conditions)
+        last_col.setAlignment(conditions, Qt.AlignHCenter)
+        last_col.addWidget(aspirations)
+        last_col.setAlignment(aspirations, Qt.AlignHCenter)
+        last_col.addWidget(obsessions)
+        last_col.setAlignment(obsessions, Qt.AlignHCenter)
 
         grid.addLayout(last_col,3,2,4,1)
         grid.setAlignment(last_col, Qt.AlignTop)
@@ -930,10 +945,7 @@ class Stat(QWidget):
             self.current = character.stats['merits'][name]
         else:
             self.current = character.stats[name]
-        if type == "merit":
-            self.setStyleSheet("QLabel { font: 8pt}")
-            self.initSmallUI()
-        elif small:
+        if small:
             self.setStyleSheet("QLabel { font: 10pt}")
             self.initSmallUI()
         else:
@@ -1206,6 +1218,220 @@ class Num_with_Line(QWidget):
     def change_text(self, new_text):
         self.text = " " + new_text + " "
         self.rating.setText(self.text)
+
+class Hover_Label_Col(QWidget):
+    def __init__(self, title, character, stat_name):
+        super().__init__()
+        self.title = "===" + title + "==="
+        self.character = character
+        self.stat_name = stat_name
+        self.initUI()
+
+    def initUI(self):
+        self.grid = QGridLayout()
+        self.grid.setSpacing(0)
+        self.grid.setContentsMargins(0,0,0,0)
+        self.setLayout(self.grid)
+        
+        title_label = QLabel(self.title)
+        title_label.setStyleSheet("QLabel { font: 13pt }" )
+        self.grid.addWidget(title_label, 0, 0, 1, 2)
+        self.grid.setAlignment(Qt.AlignTop)
+        self.grid.setAlignment(title_label, Qt.AlignHCenter)
+
+        self.content = {}
+
+        self.edit_buttons = QButtonGroup()
+        self.edit_buttons.buttonClicked[int].connect(self.edit_entry)
+
+        self.row = 1
+        for stat in self.character.stats[self.stat_name]:
+            item = Hover_Label(stat, self.character.stats[self.stat_name][stat])
+            edit_button = QPushButton("e")
+            edit_button.setMaximumWidth(15)
+            edit_button.setMaximumHeight(17)
+
+            self.content[self.row] = [item, edit_button, stat]
+            self.edit_buttons.addButton(edit_button,self.row)
+
+            self.grid.addWidget(self.content[self.row][1] ,self.row,0)
+            self.grid.addWidget(self.content[self.row][0] ,self.row,1,1,2)
+
+            self.row += 1
+
+        
+        self.new_button = QPushButton("Add New")
+        self.new_button.setMaximumWidth(60)
+        self.grid.addWidget(self.new_button, self.row, 0,1,3)
+        self.new_button.clicked.connect(self.edit_entry)
+
+    def edit_entry(self,index=None):
+        #change into edit button 
+        '''
+        Removes row holding the clicked button.
+        '''
+        if not self.character.edit_mode:
+            #check is edit mode
+            #in future version edit mode toggle will disable button
+            return
+
+        if not index:
+            #add new item
+            current_title = None
+            label, tooltip, ok = Label_Tooltip_Dialog.get_input()
+
+        else:
+            #edit current item
+            current = self.content[index][0]
+            current_title = current.title
+            current_tooltip = current.tooltip
+            label, tooltip, ok = Label_Tooltip_Dialog.get_input(title = current_title, tooltip = current.tooltip, edit = True)
+        
+        if ok and "####DELETE####" in label:
+            #delete chosen
+            #remove stat widget
+            self.grid.removeWidget(self.content[index][0])
+            sip.delete(self.content[index][0])
+            self.content[index][0] = None
+
+            #remove edit button
+            self.grid.removeWidget(self.content[index][1])
+            sip.delete(self.content[index][1])
+            self.content[index][1] = None
+
+            #remove associated data
+            del self.character.stats[self.stat_name][current_title]
+            del self.content[index]
+            
+        elif ok:
+            new = str(label).lower()
+            
+            #add/update entry on character object
+            self.character.stats[self.stat_name][new] = tooltip
+
+            #this triggers if new button pushed
+            if not current_title:
+                #add new button pressed
+                new = str(label).lower()
+
+                #creates new Stat widget to display merit
+                item = Hover_Label(new, tooltip)
+                #adds a delete button for it too
+                edit_button = QPushButton("e")
+                edit_button.setMaximumWidth(15)
+                edit_button.setMaximumHeight(17)
+                self.edit_buttons.addButton(edit_button,self.row)
+                #adds it to the self.merits dict with current value of self.row as the key
+                self.content[self.row] = [item, edit_button, new]
+
+                #remove the add new button
+                self.grid.removeWidget(self.new_button)
+
+                #add the new Stat widget and delete button
+                self.grid.addWidget(self.content[self.row][1] ,self.row,0)
+                self.grid.addWidget(self.content[self.row][0] ,self.row,1,1,2)
+
+                #add 1 to self.row
+                self.row += 1
+
+                #add the new button back to end
+                self.grid.addWidget(self.new_button, self.row,0,1,3)
+            else:
+                #if not new button then reset tooltip
+                current.set_tooltip(tooltip)
+
+
+class Label_Tooltip_Dialog (QDialog):
+    '''
+    Dialog for entering/changing labels with tooltips
+    '''
+    def __init__(self, title = '', tooltip = '', edit = False):
+        super().__init__()
+        self.title = title
+        self.tooltip = tooltip
+        self.edit = edit
+        self.initUI()
+        self.setMaximumSize(20,20)
+
+    def initUI(self):
+        self.grid = QGridLayout()
+        self.setLayout(self.grid)
+
+        self.title_label = QLabel("Label:")
+        self.title_entry = QLineEdit()
+        self.title_entry.insert(self.title)
+
+        self.tooltip_label = QLabel("Tooltip:")
+        self.tooltip_entry = QTextEdit()
+        self.tooltip_entry.setText(self.tooltip)
+
+        if self.edit:
+            #add delete button and disable label box if editing
+            self.title_entry.setDisabled(self.edit)
+            buttonBox = QDialogButtonBox(QDialogButtonBox.Ok|QDialogButtonBox.Cancel|QDialogButtonBox.Discard, Qt.Horizontal, self)
+            buttonBox.button(QDialogButtonBox.Discard).clicked.connect(self.del_item)
+            buttonBox.button(QDialogButtonBox.Discard).setText("Delete")
+        else:
+            #adding new, only okay and cancel button
+            buttonBox = QDialogButtonBox(QDialogButtonBox.Ok|QDialogButtonBox.Cancel, Qt.Horizontal, self)
+
+
+        buttonBox.accepted.connect(self.accept)
+        buttonBox.rejected.connect(self.reject)
+
+        self.grid.addWidget(self.title_label, 0,0)
+        self.grid.addWidget(self.title_entry, 0,1)
+        self.grid.addWidget(self.tooltip_label, 1,0)
+        self.grid.setAlignment(self.tooltip_label, Qt.AlignTop)
+        self.grid.addWidget(self.tooltip_entry, 1,1)
+        self.grid.addWidget(buttonBox, 2,1)
+
+    def del_item(self):
+        '''
+        Handler for delete item action.
+        Sends an accept signal but adds a delete flag to output
+        '''
+        
+        self.title_entry.insert("####DELETE####")
+        self.accept()
+
+    def get_input(title = '', tooltip = '', edit = False):
+        '''
+        Used to open a dialog window to enter details of label.
+        '''
+        dialog = Label_Tooltip_Dialog(title, tooltip, edit)
+        result = dialog.exec_()
+        return (dialog.title_entry.text(), dialog.tooltip_entry.toPlainText(), result == QDialog.Accepted)
+        
+    
+
+class Hover_Label(QWidget):
+    def __init__(self, title, tooltip = ''):
+        super().__init__()
+        self.title = title
+        self.tooltip = tooltip
+        self.initUI()
+
+    def initUI(self):
+        self.grid = QGridLayout()
+        self.grid.setSpacing(0)
+        self.grid.setContentsMargins(0,0,0,0)
+        self.setLayout(self.grid)
+        
+        self.label = QLabel(self.title)
+
+        self.grid.addWidget(self.label,0,0)
+        self.set_tooltip(self.tooltip)
+
+    def set_tooltip(self, tooltip_text):
+        #also used to change tooltip after init
+        self.tooltip = tooltip_text
+        self.label.setToolTip(tooltip_text)
+        if tooltip_text == '':
+            self.label.setCursor(QCursor(Qt.ArrowCursor))
+
+        else:
+            self.label.setCursor(QCursor(Qt.WhatsThisCursor))
 
 if __name__ == '__main__':
     #code to open UI for testing
