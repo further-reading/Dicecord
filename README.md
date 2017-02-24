@@ -1,14 +1,14 @@
 # Dicecord - A Discord Diceroller and Character Sheet
 A python based client for dispalying character sheets, rolling dice and printing results to a Discord chat channel. Uses Chronicles of Darkenss ruleset.
 
-Image Placeholder Here
+![Client](https://raw.githubusercontent.com/further-reading/Dicecord/master/dicecord full sample.PNG "Client")  
 
 ## Character Sheet
 In the current build it displays the character sheet for Mage: the Awakening modern eras. The client shows three tabs: Stats, Inventory and Notes.
 
 ### Edit Mode
-In Edit Mode you change all of your character details. To activate edit mode click the edit button in the toolbar:
-Image Placeholder Here.
+In Edit Mode you change all of your character details. To activate edit mode click the edit button in the toolbar:  
+![Edit](https://raw.githubusercontent.com/further-reading/Dicecord/master/code/images/edit.ico "Edit")  
 
 #### Remove Dots
 To remove all dots from a skill, click the first dot twice.
@@ -42,9 +42,9 @@ Enchanted items will update the mana widget on the stats page when new items are
 Characters are saved as .xml files. Saved characters can be imported into the tool by sleecting file -> open in the top menu. If unsaved changes are dtected on the deactivation of edit mode or client exit a dialogue will appear asking the user to save changes.
 
 ## Roll Instructions
-To open the roller, press the Dicecord symbol in the toolbar.
-Image Placeholder Here
-![Client](https://raw.githubusercontent.com/further-reading/Dicecord/master/client.png "Client")  
+To open the roller, press the Dicecord symbol in the toolbar.  
+![D10](https://raw.githubusercontent.com/further-reading/Dicecord/master/code/images/D10.ico "D10")  
+![Client](https://raw.githubusercontent.com/further-reading/Dicecord/master/client.PNG "Client")  
 Before rolling you need to add your user details to the character sheet.
 * Webhook URL: A [webhook](https://support.discordapp.com/hc/en-us/articles/228383668-Intro-to-Webhooks) for the channel that will share your rolls.
 * Discord UserID: A numerical ID for your Discord username. You can get this by activating developer mode, right clicking on your name and selecting "Copy ID." When the correct ID is entered the results will include @mentions for you, which can make it easier to identify your own rolls.
