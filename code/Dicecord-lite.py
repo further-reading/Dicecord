@@ -1,4 +1,4 @@
-#Dicecord: Dice Roller and Character Sheet Viewer for use in conjucntion with Discord Chat Channels
+#Dicecord-Lite: Dice Roller and Character Sheet Viewer for use in conjucntion with Discord Chat Channels
 #Copyright (C) 2017  Roy Healy
 #
 #version 0.3
