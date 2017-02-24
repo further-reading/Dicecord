@@ -1,13 +1,16 @@
-import random
-import sys
+#Chronicles of Darkness Character Sheet for use in conjunction with Dicecord.
+#   Copyright (C) 2017  Roy Healy
+
+import math
+import sys, sip
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from player import Character
 from stats import *
-import sip
+import basicUI
 
-class Sheet(QWidget):
+class StatsSheet(QWidget):
     '''
     Overall character sheet object
     '''
@@ -15,9 +18,9 @@ class Sheet(QWidget):
         super().__init__()
         self.setStyleSheet("QPushButton:pressed { background-color: white }" )
         self.character = character
+        self.character.update_derivitives()
         self.character.edit_mode = False
         self.initUI()
-        self.show()
 
     def initUI(self):
         #each section constructed as dedicated object
@@ -31,46 +34,46 @@ class Sheet(QWidget):
         self.attribute_physical_group = ATTRIBUTE_TYPE['physical']
         self.attribute_social_group = ATTRIBUTE_TYPE['social']
 
-        self.attribute_mental = Stat_Col(self.attribute_mental_group, self.character)
-        self.attribute_physical = Stat_Col(self.attribute_physical_group, self.character)
-        self.attribute_social =  Stat_Col(self.attribute_social_group, self.character)
+        self.attribute_mental = basicUI.Stat_Col(self.attribute_mental_group, self.character)
+        self.attribute_physical = basicUI.Stat_Col(self.attribute_physical_group, self.character)
+        self.attribute_social =  basicUI.Stat_Col(self.attribute_social_group, self.character)
 
-        #others
+        #skills
         self.skills = Skills(self.character)
+
+        #arcana
         self.arcana = Arcana(self.character)
+
+        #merits
         self.merits = Merits(self.character)
+
+        #mana
         self.mana = Mana(self.character)
+
+        #advantages
         self.derivitives = Derivitives(self.character)
 
         #Health
         self.health = Health(self.character)
+        
         #Willpower
         self.willpower = Willpower(self.character)
 
         #Gnosis
-        gnosis = Stat(self.character, 'gnosis', maximum = 10, small=False)
+        gnosis = basicUI.Stat(self.character, 'gnosis', maximum = 10, small=False)
         gnosis.setMaximumSize(gnosis.sizeHint())
         
         #Wisdom
-        wisdom = Stat(self.character, 'wisdom', maximum = 10, small=False)
+        wisdom = basicUI.Stat(self.character, 'wisdom', maximum = 10, small=False)
 
         #Conditions
-        conditions = Hover_Label_Col("Conditions", char, 'conditions')
+        self.conditions = basicUI.Hover_Label_Col("CONDITIONS", self.character, 'conditions')
 
         #Aspirations
-        aspirations = Hover_Label_Col("Aspirations", char, 'aspirations')
+        self.aspirations = basicUI.Hover_Label_Col("ASPIRATIONS", self.character, 'aspirations')
         
         #Obsessions
-        obsessions = Hover_Label_Col("Obsessions", char, 'obsessions')
-
-        #button to turn on edit mode
-        self.edit_button = QPushButton("Edit")
-        self.edit_button.setCheckable(True)
-        self.edit_button.clicked.connect(self.edit_toggle)
-
-        #test button - prints stats out to console
-        self.test_button = QPushButton("Test")
-        self.test_button.clicked.connect(self.test)
+        self.obsessions = basicUI.Hover_Label_Col("OBSESSIONS", self.character, 'obsessions')
 
         grid = QGridLayout()
         self.setLayout(grid)
@@ -78,19 +81,19 @@ class Sheet(QWidget):
 
         
         #top
-        grid.addWidget(self.edit_button, 0,0)
-        grid.addWidget(self.test_button, 0,1)
         grid.addWidget(self.char_info,1,0,1,3)
         grid.addWidget(self.attributes_label,2,0,1,3)
 
         #left side
         grid.addWidget(self.attribute_mental,3,0)
         grid.addWidget(self.skills,4,0,3,1)
+        grid.setAlignment(self.skills, Qt.AlignTop)
 
         #middle
         grid.addWidget(self.attribute_physical, 3,1)
         grid.addWidget(self.arcana, 4,1)
         grid.addWidget(self.merits, 5,1)
+        grid.setAlignment(self.merits, Qt.AlignHCenter)
         grid.addWidget(self.derivitives, 6,1)
         grid.setAlignment(self.derivitives, Qt.AlignBottom)
         
@@ -106,34 +109,32 @@ class Sheet(QWidget):
         last_col.setAlignment(wisdom, Qt.AlignHCenter)
         last_col.addWidget(self.mana)
         last_col.setAlignment(self.mana, Qt.AlignHCenter)
-        last_col.addWidget(conditions)
-        last_col.setAlignment(conditions, Qt.AlignHCenter)
-        last_col.addWidget(aspirations)
-        last_col.setAlignment(aspirations, Qt.AlignHCenter)
-        last_col.addWidget(obsessions)
-        last_col.setAlignment(obsessions, Qt.AlignHCenter)
+        last_col.addWidget(self.conditions)
+        last_col.setAlignment(self.conditions, Qt.AlignHCenter)
+        last_col.addWidget(self.aspirations)
+        last_col.setAlignment(self.aspirations, Qt.AlignHCenter)
+        last_col.addWidget(self.obsessions)
+        last_col.setAlignment(self.obsessions, Qt.AlignHCenter)
 
         grid.addLayout(last_col,3,2,4,1)
         grid.setAlignment(last_col, Qt.AlignTop)
         
+        
 
     def edit_toggle(self):
-        #changed edit mode to the Checked status of the edit toggle
-        self.character.edit_mode = self.edit_button.isChecked()
-        if self.character.edit_mode:
-            self.char_info.check_edit_mode()
-        else:
-            self.char_info.save_changes()
+        #toggle edit mode on relevant stats
+        self.merits.edit_toggle()
+        self.obsessions.edit_toggle()
+        self.aspirations.edit_toggle()
+        self.char_info.edit_toggle()
+        
+        if not self.character.edit_mode:
+            #apply changes
             self.character.update_derivitives()
             self.derivitives.update_all()
             self.willpower.update()
             self.health.update_max()
-            #max mana/health update
-
-    def test(self):
-        #test functions to ensure that chnages are saved
-        print(self.character.stats)
-            
+            self.mana.update_mana()
 
 class Character_Info(QWidget):
     def __init__(self, character):
@@ -151,82 +152,14 @@ class Character_Info(QWidget):
         for section in HEADERS:
             row = 0
             for name in section:
-                self.headers[name] = Label_Entry_Combo(self.character, name)
+                self.headers[name] = basicUI.Label_Entry_Combo(self.character, name)
                 grid.addWidget(self.headers[name],row,col)
                 row += 1
             col += 1
 
-    def check_edit_mode(self):
+    def edit_toggle(self):
         for name in self.headers:
-            self.headers[name].check_edit_mode()
-
-    def save_changes(self):
-        for name in self.headers:
-            self.headers[name].save_changes()
-            
-
-class Label_Entry_Combo(QWidget):
-    def __init__(self, character, name):
-        super().__init__()
-        self.setStyleSheet("QLabel { font: 10pt}")
-        self.character = character
-        self.name = name
-        self.initUI()
-        self.check_edit_mode()
-
-    def initUI(self):
-        label = QLabel(self.name.title() + ":")
-        label.setMinimumWidth(50)
-        self.content = QLineEdit()
-        self.content.setMaximumWidth(100)
-        self.content.insert(self.character.stats[self.name])
-        
-        box = QHBoxLayout()
-        self.setLayout(box)
-        box.setSpacing(5)
-        box.setContentsMargins(0,0,0,0)
-
-        box.addWidget(label)
-        box.addWidget(self.content)
-
-    def save_changes(self):
-        self.character.stats[self.name] = self.content.text()
-        self.content.setReadOnly(True)
-
-    def check_edit_mode(self):
-        self.content.setReadOnly(not self.character.edit_mode)
-  
-
-class Attributes (QWidget):
-    '''
-    Attributes are a 3 span column
-    Split between mental, physical, social
-    3 rows each
-    '''
-    def __init__(self, character):
-        super().__init__()
-        self.setStyleSheet("QLabel { font: 13pt}")
-        self.character = character
-        self.initUI()
-
-    def initUI(self):
-        label = QLabel("=====ATTRIBUTES=====")
-        label.setAlignment(Qt.AlignCenter)
-        mental_group = ATTRIBUTE_TYPE['mental']
-        physical_group = ATTRIBUTE_TYPE['physical']
-        social_group = ATTRIBUTE_TYPE['social']
-
-        self.mental = Stat_Col(mental_group, self.character)
-        self.physical = Stat_Col(physical_group, self.character)
-        self.social =  Stat_Col(social_group, self.character)
-
-        grid = QGridLayout()
-        self.setLayout(grid)
-        
-        grid.addWidget(label, 0, 0, 1, 3) 
-        grid.addWidget(self.mental,1,0)
-        grid.addWidget(self.physical,1,1)
-        grid.addWidget(self.social,1,2)
+            self.headers[name].edit_toggle()
 
 class Skills(QWidget):
     def __init__(self, character):
@@ -255,9 +188,9 @@ class Skills(QWidget):
         physical_group = SKILL_TYPE['physical']
         social_group = SKILL_TYPE['social']
 
-        self.mental = Stat_Col(mental_group, self.character, type = 'skill')
-        self.physical = Stat_Col(physical_group, self.character, type = 'skill')
-        self.social =  Stat_Col(social_group, self.character, type = 'skill')
+        self.mental = basicUI.Stat_Col(mental_group, self.character, type = "skill")
+        self.physical = basicUI.Stat_Col(physical_group, self.character, type = "skill")
+        self.social =  basicUI.Stat_Col(social_group, self.character, type = "skill")
                                  
 
         grid = QGridLayout()
@@ -275,9 +208,7 @@ class Skills(QWidget):
 class Arcana(QWidget):
     def __init__(self, character):
         '''
-        Skills are a 3 span column.
-        Each section contains physcial, social or mental skills.
-        Labels indicate unlearned skill penalties.
+        Arcana dots.
         '''
         super().__init__()
         self.setStyleSheet("QLabel { font: 13pt}")
@@ -293,7 +224,7 @@ class Arcana(QWidget):
         overall_label = QLabel("===ARCANA===")
         overall_label.setAlignment(Qt.AlignCenter)
 
-        self.arcana = Stat_Col(ARCANA, self.character)
+        self.arcana = basicUI.Stat_Col(ARCANA, self.character)
 
         box.setAlignment(Qt.AlignTop)
         box.addWidget(overall_label)
@@ -308,116 +239,138 @@ class Merits(QWidget):
         super().__init__()
         self.character = character
         self.setStyleSheet("QLabel { font: 13pt}")
-        #Merits are a dict within the character.stats dict.
-        self.stats = character.stats['merits']
         self.initUI()
 
     def initUI(self):
-        self.grid = QGridLayout()
-        self.merits = {}
+        self.box = QVBoxLayout()
+        self.box.setSpacing(0)
+        self.box.setContentsMargins(0,0,0,0)
+        self.setLayout(self.box)
 
-        self.grid.setSpacing(0)
-        self.grid.setContentsMargins(0,0,0,0)
-        self.setLayout(self.grid)
+        stats = self.character.stats['merits']
+        self.merits = {}
         
         self.label = QLabel('===MERITS===')
-        self.grid.addWidget(self.label, 0, 0, 1, 3)
-        self.grid.setAlignment(Qt.AlignTop)
-        self.grid.setAlignment(self.label, Qt.AlignHCenter)
+        self.box.addWidget(self.label)
+        self.box.setAlignment(Qt.AlignTop)
+        self.box.setAlignment(self.label, Qt.AlignHCenter)
         
         self.delete_buttons = QButtonGroup()
         #the buttonClickedSlot method will take the ID of the clicked delete button as an argument
-        self.delete_buttons.buttonClicked[int].connect(self.buttonClickedSlot)
+        self.delete_buttons.buttonClicked[int].connect(self.edit_entry)
 
         self.row = 1
-        for stat in self.stats:
+        for stat in stats:
             #There can be a variable number of merits, so must be drawn with a loop.
-            #starts at 1 since the lable takes the 0 spot.
-            merit = Stat(self.character, stat, type="merit")
-            delete_button = QPushButton("x")
-            delete_button.setMaximumWidth(15)
-            delete_button.setMaximumHeight(17)
+            #starts at 1 since the label takes the 0 spot.
+            merit = basicUI.Stat(self.character, stat, type="merit")
             #a self.merits dict is made to help with deltion method
-            #includes the Stats object, the deletion button and stat name
-            self.merits[self.row] = [merit, delete_button, stat]
+            self.merits[self.row] = merit
             #delete buttons are added to a button group with their row as an ID
-            self.delete_buttons.addButton(delete_button,self.row)
+            self.delete_buttons.addButton(merit.label,self.row)
             
-            self.grid.addWidget(self.merits[self.row][1] ,self.row,0)
-            self.grid.addWidget(self.merits[self.row][0] ,self.row,1,1,2)
+            self.box.addWidget(self.merits[self.row])
             
             self.row += 1
-        #Add the "add new" button for adding new merits
-        self.new_button = QPushButton("Add New")
-        self.new_button.setMaximumWidth(60)
-        self.grid.addWidget(self.new_button, self.row, 0,1,3)
-        self.new_button.clicked.connect(self.add_new)
-
-
-    def buttonClickedSlot(self,index):
-        '''
-        Removes row holding the clicked button.
-        '''
-        if not self.character.edit_mode:
-            #check is edit mode
-            #in future version edit mode toggle will disable button
-            return
         
-        #remove stat widget
-        self.grid.removeWidget(self.merits[index][0])
-        sip.delete(self.merits[index][0])
-        self.merits[index][0] = None
+        #Add the "add new" button for adding new merits
+        if self.character.edit_mode:
+            self.edit_toggle()
 
-        #remove deletion button
-        self.grid.removeWidget(self.merits[index][1])
-        sip.delete(self.merits[index][1])
-        self.merits[index][1] = None
+    def edit_toggle(self):
+        if self.character.edit_mode:
+            self.new_button = QPushButton("Add New")
+            self.new_button.setMaximumWidth(60)
+            self.new_button.clicked.connect(self.edit_entry)
+            self.box.addWidget(self.new_button)
 
-        #remove associated data
-        del self.character.stats['merits'][self.merits[index][2]]
-        del self.merits[index]
+        else:
+            self.box.removeWidget(self.new_button)
+            sip.delete(self.new_button)
             
 
-    def add_new(self):
+    def edit_entry(self,index=None):
         '''
-        Add new merit to list
+        Edit the widget contents.
+        Used for updating a current entry, deleting a current entry or adding a new one.
         '''
+
         if not self.character.edit_mode:
-            #check is edit mode
-            #in future version edit mode toggle will disable button
+            #Actions only possible in edit mode
+            return
+        
+        if not index:
+            current_title = None
+            #add new item if no index given
+            label, tooltip, ok = basicUI.Label_Tooltip_Dialog.get_input(wintitle = "Add Merit")
+
+        else:
+            #edit current item
+            current = self.merits[index]
+            current_title = current.label.text().title()
+            current_tooltip = current.label.toolTip()
+            label, tooltip, ok = basicUI.Label_Tooltip_Dialog.get_input(title = current_title, tooltip = current_tooltip, edit = True, wintitle = "Change Merit")
+        
+        if not ok:
+            #cancel pressed
             return
 
-        #Ask for name of merit
-        text, ok = QInputDialog.getText(self, 'Add Merit', 'Enter merit name:')
-        
-        if ok and str(text).lower() not in self.character.stats['merits']:
-            #it won't add a second merit of the same name
-            new = str(text).lower()
-            #adds merit to character object
-            self.character.stats['merits'][new] = 1
+        if not current_title and label.lower() in self.character.stats['merits']:
+            #add new but title already in use
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Warning)
 
-            #creates new Stat widget to display merit
-            merit = Stat(self.character, new, type = "merit")
-            #adds a delete button for it too
-            delete_button = QPushButton("x")
-            delete_button.setMaximumWidth(15)
-            delete_button.setMaximumHeight(17)
-            self.delete_buttons.addButton(delete_button,self.row)
-            #adds it to the self.merits dict with current value of self.row as the key
-            self.merits[self.row] = [merit, delete_button, new]
+            msg.setText("Merit with this name already exists.")
+            msg.setInformativeText("Please use unique name.")
+            msg.setWindowTitle("Duplicate Name")
+            msg.setStandardButtons(QMessageBox.Ok)
+            retval = msg.exec_()
+
+        elif not current_title:
+            #Only adds new if entry by that name does not exist yet
+            #add entry on character object
+            new = label.lower()
+            self.character.stats["merit details"][new] = tooltip
+            self.character.stats["merits"][new] = 0
+
+            #creates entry
+            merit = basicUI.Stat(self.character, new, type="merit")
+            self.merits[self.row] = merit
+            self.delete_buttons.addButton(merit.label,self.row)
 
             #remove the add new button
-            self.grid.removeWidget(self.new_button)
+            self.box.removeWidget(self.new_button)
 
             #add the new Stat widget and delete button
-            self.grid.addWidget(self.merits[self.row][1] ,self.row,0)
-            self.grid.addWidget(self.merits[self.row][0] ,self.row,1,1,2)
+            self.box.addWidget(merit)
 
             #add 1 to self.row
             self.row += 1
 
             #add the new button back to end
-            self.grid.addWidget(self.new_button, self.row,0,1,3)
+            self.box.addWidget(self.new_button)
+        
+
+        elif "####DELETE####" in label:
+            #delete chosen
+            #remove stat widget
+            self.box.removeWidget(self.merits[index])
+            sip.delete(self.merits[index])
+
+            #remove associated data
+            del self.character.stats["merits"][current_title.lower()]
+            del self.character.stats["merit details"][current_title.lower()]
+            del self.merits[index]
+            
+        else:
+            #Update tooltip of existing entry
+            current.label.setToolTip(tooltip)
+            self.character.stats["merit details"][current_title.lower()] = tooltip
+            if tooltip == '':
+                #update cursor if blank now
+                current.label.setCursor(QCursor(Qt.ArrowCursor))
+            else:
+                current.label.setCursor(QCursor(Qt.WhatsThisCursor))
 
 class Derivitives (QWidget):
     def __init__(self, character):
@@ -457,7 +410,7 @@ class Derivitives (QWidget):
         size_label.setToolTip("Regular humans are size 5")
         size_label.setCursor(QCursor(Qt.WhatsThisCursor))
         size_label.setContentsMargins(0,0,0,0)
-        size_rating = Num_with_Line(str(self.character.stats['size']))
+        size_rating = basicUI.Num_with_Line(str(self.character.stats['size']))
         
         size_mod = QSpinBox()
         size_mod.setMinimum(-100)
@@ -465,7 +418,7 @@ class Derivitives (QWidget):
         size_mod.setMaximumSize(QSize(35, 20))
 
         size_total_num = self.character.stats['size'] + self.character.stats['size mod']
-        size_total = Num_with_Line(str(size_total_num))
+        size_total = basicUI.Num_with_Line(str(size_total_num))
 
         self.derived_stats['size'] = (size_rating, size_mod, size_total)
         size_mod.valueChanged.connect(lambda: self.update_deriv('size'))
@@ -479,7 +432,7 @@ class Derivitives (QWidget):
         speed_label = QLabel("Speed: ")
         speed_label.setToolTip("Dexterity + Strength + 5")
         speed_label.setCursor(QCursor(Qt.WhatsThisCursor))
-        speed_rating = Num_with_Line(str(self.character.stats['speed']))
+        speed_rating = basicUI.Num_with_Line(str(self.character.stats['speed']))
         
         speed_mod = QSpinBox()
         speed_mod.setMinimum(-100)
@@ -487,7 +440,7 @@ class Derivitives (QWidget):
         speed_mod.setMaximumSize(QSize(35, 20))
 
         speed_total_num = self.character.stats['speed'] + self.character.stats['speed mod']
-        speed_total = Num_with_Line(str(speed_total_num))
+        speed_total = basicUI.Num_with_Line(str(speed_total_num))
 
         self.derived_stats['speed'] = (speed_rating, speed_mod, speed_total)
         speed_mod.valueChanged.connect(lambda: self.update_deriv('speed'))
@@ -501,7 +454,7 @@ class Derivitives (QWidget):
         defense_label = QLabel("Defense: ")
         defense_label.setToolTip("Lower of Dexterity or Wits")
         defense_label.setCursor(QCursor(Qt.WhatsThisCursor))
-        defense_rating = Num_with_Line(str(self.character.stats['defense']))
+        defense_rating = basicUI.Num_with_Line(str(self.character.stats['defense']))
         
         defense_mod = QSpinBox()
         defense_mod.setMinimum(-100)
@@ -509,7 +462,7 @@ class Derivitives (QWidget):
         defense_mod.setMaximumSize(QSize(35, 20))
 
         defense_total_num = self.character.stats['defense'] + self.character.stats['defense mod']
-        defense_total = Num_with_Line(str(defense_total_num))
+        defense_total = basicUI.Num_with_Line(str(defense_total_num))
 
         self.derived_stats['defense'] = (defense_rating, defense_mod, defense_total)
         defense_mod.valueChanged.connect(lambda: self.update_deriv('defense'))
@@ -523,7 +476,7 @@ class Derivitives (QWidget):
         initiative_label = QLabel("Initiative: ")
         initiative_label.setToolTip("Dexterity + Composure")
         initiative_label.setCursor(QCursor(Qt.WhatsThisCursor))
-        initiative_rating = Num_with_Line(str(self.character.stats['initiative']))
+        initiative_rating = basicUI.Num_with_Line(str(self.character.stats['initiative']))
         
         initiative_mod = QSpinBox()
         initiative_mod.setMinimum(-100)
@@ -531,7 +484,7 @@ class Derivitives (QWidget):
         initiative_mod.setMaximumSize(QSize(35, 20))
 
         initiative_total_num = self.character.stats['initiative'] + self.character.stats['initiative mod']
-        initiative_total = Num_with_Line(str(initiative_total_num))
+        initiative_total = basicUI.Num_with_Line(str(initiative_total_num))
 
         self.derived_stats['initiative'] = (initiative_rating, initiative_mod, initiative_total)
         initiative_mod.valueChanged.connect(lambda: self.update_deriv('initiative'))
@@ -563,17 +516,17 @@ class Derivitives (QWidget):
         #add button group for beat changes
         for i in range(1,6):
             if i <= self.character.stats["beats"]:
-                beats[i] = Square("beats", self.character, filled=True)
+                beats[i] = basicUI.Square("beats", self.character, filled=True)
                 beatbox.addWidget(beats[i])
                 
             else:
-                beats[i] = Square("beats", self.character, filled=False)
+                beats[i] = basicUI.Square("beats", self.character, filled=False)
                 beatbox.addWidget(beats[i])
 
         self.grid.addWidget(beat_label,7,0)
         self.grid.addLayout(beatbox,7,1)
 
-        self.beat_group = Squares_Group("beats", 5, beats, self.character)
+        self.beat_group = basicUI.Squares_Group("beats", 5, beats, self.character)
         for pos in beats:
             self.beat_group.addButton(beats[pos],pos)
 
@@ -597,17 +550,17 @@ class Derivitives (QWidget):
         #add button group for beat changes
         for i in range(1,6):
             if i <= self.character.stats["arcane beats"]:
-                arcbeats[i] = Square("arcane beats", self.character, filled=True)
+                arcbeats[i] = basicUI.Square("arcane beats", self.character, filled=True)
                 arcbeatbox.addWidget(arcbeats[i])
                 
             else:
-                arcbeats[i] = Square("arcane beats", self.character, filled=False)
+                arcbeats[i] = basicUI.Square("arcane beats", self.character, filled=False)
                 arcbeatbox.addWidget(arcbeats[i])
 
         self.grid.addWidget(arcbeat_label,9,0)
         self.grid.addLayout(arcbeatbox,9,1)
 
-        self.arcbeat_group = Squares_Group("arcane beats", 5, arcbeats, self.character)
+        self.arcbeat_group = basicUI.Squares_Group("arcane beats", 5, arcbeats, self.character)
         for pos in arcbeats:
             self.arcbeat_group.addButton(arcbeats[pos],pos)
 
@@ -678,18 +631,18 @@ class Willpower (QWidget):
 
         for x in range(1,11):
             if x <= self.current:
-                self.dots[x] = Dot(filled=True, type = "big")
+                self.dots[x] = basicUI.Dot(filled=True)
             else:
-                self.dots[x] = Dot(filled=False, type = "big")
+                self.dots[x] = basicUI.Dot(filled=False)
             if x <= self.filled:
-                squares[x] = Square("willpower", self.character, filled=True)
+                squares[x] = basicUI.Square("willpower", self.character, filled=True)
             else:
-                squares[x] = Square("willpower", self.character)
+                squares[x] = basicUI.Square("willpower", self.character)
             grid.addWidget(self.dots[x],0,x)
             grid.addWidget(squares[x],1,x)
 
 
-        self.willpower_group = Squares_Group("willpower filled", 10, squares, self.character)
+        self.willpower_group = basicUI.Squares_Group("willpower filled", 10, squares, self.character)
         for pos in squares:
             self.willpower_group.addButton(squares[pos],pos)
 
@@ -747,10 +700,10 @@ class Health (QWidget):
         for x in range(1,13):
             if x <= health[0]:
                 #health[0] is max jealth
-                self.dots[x] = Dot(filled=True, type = "big")
+                self.dots[x] = basicUI.Dot(filled=True)
             else:
-                self.dots[x] = Dot(filled=False, type = "big")
-            squares[x] = Square("health", self.character, index=x)
+                self.dots[x] = basicUI.Dot(filled=False)
+            squares[x] = basicUI.Square("health", self.character, index=x)
             grid.addWidget(self.dots[x],0,x)
             grid.addWidget(squares[x],1,x)
 
@@ -824,12 +777,14 @@ class Health_Group(QButtonGroup):
                 self.buttons[button].select_Image()
 
         #record changes
+        #unfilled will add to 0th position
         health = [0, 0, 0, 0]
 
         for button in range(1,13):
             rating = self.buttons[button].filled
             health[rating] += 1
 
+        #change values for all but 0th position
         self.character.stats['health'][1:] = health[1:]
 
 class Mana(QWidget):
@@ -847,599 +802,112 @@ class Mana(QWidget):
         self.grid.setAlignment(Qt.AlignHCenter|Qt.AlignTop)
 
         #Overall
-        self.overall_label = QLabel("Mana")
+        self.overall_label = QLabel("===MANA===")
         self.overall_label.setStyleSheet("QLabel { font: 13pt}")
-
-        #Spend
+        self.source_label = QLabel("Source")
+        self.source_label.setStyleSheet("QLabel {text-decoration: underline; font: 10pt}")
         self.spent_label = QLabel("Spent")
         self.spent_label.setStyleSheet("QLabel {text-decoration: underline; font: 10pt}")
+        self.current_label = QLabel("Current")
+        self.current_label.setStyleSheet("QLabel {text-decoration: underline; font: 10pt}")
+
+        self.grid.addWidget(self.overall_label, 0, 0, 1, 3)
+        self.grid.setAlignment(self.overall_label, Qt.AlignHCenter)
+        self.grid.addWidget(self.source_label, 1, 0)
+        self.grid.setAlignment(self.source_label, Qt.AlignRight)
+        self.grid.addWidget(self.spent_label, 1, 1)
+        self.grid.addWidget(self.current_label, 1, 2)
+
+        ##Base
+        #base label
+        self.base_label = QLabel("Base : ")
+        
+        #base spent
         self.spent = QSpinBox()
         self.spent.setValue(self.character.stats['mana spent'])
         self.spent.setMaximumSize(QSize(35, 20))
-        self.spent.setMaximum(self.character.stats['mana'] + self.character.stats['mana mod'])
+        self.spent.setMaximum(self.character.stats['mana'])
         self.spent.valueChanged.connect(self.update_mana)
 
         
-        #Current total
-        self.current_label = QLabel("Current")
-        self.current_label.setStyleSheet("QLabel {text-decoration: underline; font: 10pt}")
-        current_num = self.character.stats['mana'] + self.character.stats['mana mod'] - self.character.stats['mana spent']
-        self.current = Num_with_Line(str(current_num) + "/" + str(self.character.stats['mana']))
+        #base current
+        current_num = self.character.stats['mana'] - self.character.stats['mana spent']
+        self.current = basicUI.Num_with_Line(str(current_num) + "/" + str(self.character.stats['mana']))
 
-        self.grid.addWidget(self.overall_label, 0, 0, 1, 2)
-        self.grid.setAlignment(self.overall_label, Qt.AlignHCenter)
-        self.grid.addWidget(self.spent_label, 1, 0)
-        self.grid.addWidget(self.current_label, 1, 1)
-        self.grid.addWidget(self.spent, 2, 0)
-        self.grid.addWidget(self.current, 2, 1)
+        self.grid.addWidget(self.base_label, 2, 0)
+        self.grid.setAlignment(self.base_label, Qt.AlignRight)
+        self.grid.addWidget(self.spent, 2, 1)
+        self.grid.addWidget(self.current, 2, 2)
 
-    def update_mana(self):
-        self.character.stats['mana spent'] = self.spent.value()
-        self.spent.setMaximum(self.character.stats['mana'] + self.character.stats['mana mod'])
-        
-        current_num = self.character.stats['mana'] + self.character.stats['mana mod'] - self.character.stats['mana spent']
-        self.current.change_text(str(current_num) + "/" + str(self.character.stats['mana']))
+        #enchanted items
+        self.ench_items = {}
+        self.update_ench_items()
 
-class Hover_Label_Col(QWidget):
-    def __init__(self, title):
-        super().__init__()
-        self.title = "==" + title + "=="
-        self.initUI()
+    def update_ench_items(self):
+        keys = list(self.ench_items.keys())
+        for item in keys:
+            widgets = self.ench_items[item]
+            name = widgets[0]
+            #remove all from UI,remove from dict and delete
+            for widget in widgets[1:]:
+                self.grid.removeWidget(widget)
+                sip.delete(widget)
 
-    def initUI(self):
-        box = QVBoxLayout()
-        self.setLayout(box)
-        box.setSpacing(5)
-        box.setContentsMargins(0,0,0,0)
-        
-        title_label = QLabel(self.title)
-        title_label.setStyleSheet("Qlabel {font = 13pt}")
-
-        
-
-class Stat_Col(QWidget):
-    def __init__(self, stats, character, type=""):
-        '''
-        Makes a column of dots.
-        Takes list of Tuples in the form (title, current, max) and the associated character object.
-        '''
-        #Can rewrite to take list of keys instead.
-        super().__init__()
-        self.stats = stats
-        self.character = character
-        self.type = type
-        self.initUI()
-
-    def initUI(self):
-        grid = QGridLayout()
-        self.setLayout(grid)
-        grid.setSpacing(0)
-        grid.setContentsMargins(0,0,0,0)
-
-        row = 0
+            #remove associated data
+            del self.ench_items[item]
             
-        for stat in self.stats:
-            if self.type == "skill":
-                rotes = self.character.stats['rote skill']
-                rote_button = (Square(stat, self.character, filled= stat in rotes))
-                rote_button.clicked.connect(rote_button.change_Image)
-                grid.addWidget(rote_button,row,0)
-                
-            grid.addWidget(Stat(self.character, stat, type = self.type),row,1)
-            row += 1
-        
 
-class Stat(QWidget):
-    '''
-    Object for showing dots in the form "name ooooo" for small dots.
-    In form "name\n OOOOO" for big dots
-    '''
-    
-    def __init__(self, character, name, maximum = 5, small=True, type=""):
-        super().__init__()
-        self.maximum = maximum
-        self.name = name
-        self.character = character
-        self.type = type
-        if self.type == "merit":
-            self.current = character.stats['merits'][name]
-        else:
-            self.current = character.stats[name]
-        if small:
-            self.setStyleSheet("QLabel { font: 10pt}")
-            self.initSmallUI()
-        else:
-            self.setStyleSheet("QLabel { font: 13pt}")
-            self.initBigUI()
+        self.row = 3
+        #add back in
+        for item in self.character.stats['ench items']:
+            self.ench_items[self.row] = [item]
+            total_mana = self.character.stats['ench items'][item][3]
+            spent_mana = self.character.stats['ench items'][item][4]
+            item_type = self.character.stats['ench items'][item][0]
 
-    def initSmallUI(self):
-        dots = {}
-        box = QHBoxLayout()
-        self.setLayout(box)
-        box.setSpacing(5)
-        box.setContentsMargins(0,0,0,0)
-        
-        self.label = QLabel(self.name.title())
-        box.addWidget(self.label)
+            #label
+            label = QLabel(item.title() + "(" + item_type.title() + ") :")
+            self.ench_items[self.row].append(label)
 
-        #it will initilaise with the dots filled accoridng to character.stats['name']
-        #Each dot is an abstract button widget
-        for x in range(1,self.maximum+1):
-            if x <= self.current:
-                dots[x] = Dot(filled=True)
-            else:
-                dots[x] = Dot(filled=False)
-            box.addWidget(dots[x])
+            #spent
+            spent = QSpinBox()
+            spent.setValue(spent_mana)
+            spent.setMaximumSize(QSize(35, 20))
+            spent.setMaximum(total_mana)
+            spent.valueChanged.connect(self.update_mana)
+            self.ench_items[self.row].append(spent)
 
-        #a button group is created that will be used for changing dot rating
-        #mght be possible to reorganise code to avoid second loop
-        self.dot_group = Dots_Group(self.name, dots, self.character, maximum = self.maximum, type = self.type)
-        for pos in dots:
-            self.dot_group.addButton(dots[pos],pos)
+            #current
+            current_num = total_mana - spent_mana
+            current = basicUI.Num_with_Line(str(current_num) + "/" + str(total_mana))
+            self.ench_items[self.row].append(current)
 
-        #add a click handler for the entire group
-        self.dot_group.buttonClicked[int].connect(self.dot_group.buttonClickedSlot)
-
-    def initBigUI(self):
-        dots = {}
-        box = QVBoxLayout()
-        dotbox = QHBoxLayout()
-        self.setLayout(box)
-        box.setSpacing(5)
-        box.setContentsMargins(0,0,0,0)
-        
-        self.label = QLabel(self.name.title())
-        self.label.setAlignment(Qt.AlignCenter)
-        #will one day use a proper CSS to set this
-        
-        box.addWidget(self.label)
-
-        #it will initilaise with the dots filled accoridng to character.stats['name']
-        #Each dot is an abstract button widget
-        for x in range(1,self.maximum+1):
-            if x <= self.current:
-                dots[x] = Dot(filled=True, type = "big")
-            else:
-                dots[x] = Dot(filled=False, type = "big")
-            dotbox.addWidget(dots[x])
-
-        box.addLayout(dotbox)
-
-        #a button group is created that will be used for changing dot rating
-        #mght be possible to reorganise code to avoid second loop
-        self.dot_group = Dots_Group(self.name, dots, self.character, maximum = self.maximum)
-        for pos in dots:
-            self.dot_group.addButton(dots[pos],pos)
-
-        #add a click handler for the entire group
-        self.dot_group.buttonClicked[int].connect(self.dot_group.buttonClickedSlot)
-        
-
-class Dots_Group(QButtonGroup):
-    '''
-    A QButton group that handles what happens when dots are clicked.
-    '''
-    def __init__(self, stat_name, dots, character, maximum=5, type=''):
-        super().__init__()
-        self.dots = dots
-        self.stat_name = stat_name
-        self.character = character
-        self.maximum = maximum
-        self.type = type
-        self.last_click = 0
-        
-    def buttonClickedSlot(self,index):
-        '''
-        Index will be the dot clicked, counting up from 1.
-        This will fill all dots up to and including index, and empty anything bigger than index.
-        The associated stat in the character object will also be updated.
-        '''
-        if not self.character.edit_mode:
-            #nothing happens when not in edit mode
-            return
-        
-        if self.last_click == index:
-            #if a dotis clicked a second time in a row it unfills it
-            index -= 1
-        
-        for x in range(1,self.maximum + 1):
-            #currently has maximum hard coded
-            #will need to replace with user entered maximum
-            if x <= index:
-                self.dots[x].filled = True
-                self.dots[x].select_Image()
-            elif x > index:
-                self.dots[x].filled = False
-                self.dots[x].select_Image()
-
-        #associated stat is updated along with any derivitives
-        if self.type == 'merit':
-            self.character.stats['merits'][self.stat_name] = index
-        else:
-            self.character.stats[self.stat_name] = index
-        self.character.update_derivitives()
-        self.last_click = index
-
-class Dot(QAbstractButton):
-    '''
-    Object for the dot.
-    Sets the images for the dot and image changing method
-    '''
-    def __init__(self, type="small", filled=False):
-        super().__init__()
-        self.filled = filled
-        self.type = type
-        self.setCursor(QCursor(Qt.PointingHandCursor))
-        self.select_Image()
-
-    def paintEvent(self, event):
-        #paints the dot
-        painter = QPainter(self)
-        painter.drawPixmap(event.rect(), self.pixmap)
-
-    def select_Image(self):
-        '''
-        Checks if dot is currently filled and draws appropiate image.
-        '''
-        if self.type == "small":
-            filled = r"images\filled.png"
-            unfilled = r"images\unfilled.png"
-        else:
-            filled = r"images\big_filled.png"
-            unfilled = r"images\big_unfilled.png"
-
-        
-        if self.filled:
-            self.pixmap = QPixmap(filled)
-    
-        else:
-            self.pixmap = QPixmap(unfilled)
-
-        self.setMaximumSize(self.pixmap.size())
-        self.setMinimumSize(self.pixmap.size())
-        self.update()
-
-class Square(QAbstractButton):
-    '''
-    Object for the square.
-    Sets the images for the square and image changing method
-    '''
-    def __init__(self, stat, character, filled=0, index=None, group = None):
-        super().__init__()
-        self.filled = filled
-        self.index = index
-        self.stat = stat
-        self.character = character
-        self.group = None
-        self.setCursor(QCursor(Qt.PointingHandCursor))
-        self.squares = {0: r"images\square_unfilled.png",
-                        1: r"images\square_one.png",
-                        2: r"images\square_two.png",
-                        3: r"images\square_full.png",
-                        }
-        self.select_Image()
-
-    def paintEvent(self, event):
-        #paints the square
-        painter = QPainter(self)
-        painter.drawPixmap(event.rect(), self.pixmap)
-
-    def select_Image(self):
-        '''
-        Draws appropiate square.
-        '''
-        self.pixmap = QPixmap(self.squares[self.filled])
-
-        self.setMaximumSize(self.pixmap.size())
-        self.setMinimumSize(self.pixmap.size())
-        self.update()
-
-    def change_Image(self):
-        if self.character.edit_mode and self.stat in SKILLS:
-            #changes rote skills if edit mode
-            self.filled = not self.filled
-            if self.filled:
-                self.character.stats['rote skill'].add(self.stat)
-            else:
-                self.character.stats['rote skill'].remove(self.stat)
-                
-        elif self.stat == 'health':
-            self.filled += 1
-            if self.filled == 4:
-                self.filled = 0
-
-        self.select_Image()
-
-    def reduce (self):
-        self.filled -= 1
-        if self.filled < 0:
-            self.filled = 3
- 
-        self.select_Image()
-
-        self.group.change(self.index, reduce = True)
-
-class Squares_Group(QButtonGroup):
-    '''
-    A QButton group that handles what happens when squares are clicked.
-    '''
-    def __init__(self, stat_name, stat_max, squares, character):
-        super().__init__()
-        self.squares = squares
-        self.stat_name = stat_name
-        self.stat_max = stat_max + 1
-        self.character = character
-        self.last_click = 0
-        
-    def buttonClickedSlot(self,index):
-        '''
-        Index will be the square clicked, counting up from 1.
-        This will fill all squares up to and including index, and empty anything bigger than index.
-        The associated stat in the character object will also be updated.
-        '''
-        if self.last_click == index:
-            #if a box is clicked twice in a row it unfills it
-            index -= 1
-            
-        for x in range(1, self.stat_max):
-            if x <= index:
-                self.squares[x].filled = True
-                self.squares[x].select_Image()
-            elif x > index:
-                self.squares[x].filled = False
-                self.squares[x].select_Image()
-
-        #associated stat is updated 
-        self.character.stats[self.stat_name] = index
-        self.last_click = index
-
-class Num_with_Line(QWidget):
-    '''
-    A Label with a line under it.
-    '''
-    def __init__(self, text):
-        super().__init__()
-        self.text = " " + text + " "
-        self.initUI()
-        
-        
-    def initUI(self):      
-        self.grid = QGridLayout()
-        self.grid.setSpacing(0)
-        self.grid.setContentsMargins(0,0,0,0)
-        self.setLayout(self.grid)
-        
-        self.rating = QLabel(self.text)
-        self.rating.setStyleSheet("QLabel {text-decoration: underline}")
-        self.rating.setAlignment(Qt.AlignCenter)
-        
-        self.grid.addWidget(self.rating,0,0)
-
-    def change_text(self, new_text):
-        self.text = " " + new_text + " "
-        self.rating.setText(self.text)
-
-class Hover_Label_Col(QWidget):
-    def __init__(self, title, character, stat_name):
-        super().__init__()
-        self.title = "===" + title + "==="
-        self.character = character
-        self.stat_name = stat_name
-        self.initUI()
-
-    def initUI(self):
-        self.grid = QGridLayout()
-        self.grid.setSpacing(0)
-        self.grid.setContentsMargins(0,0,0,0)
-        self.setLayout(self.grid)
-        
-        title_label = QLabel(self.title)
-        title_label.setStyleSheet("QLabel { font: 13pt }" )
-        self.grid.addWidget(title_label, 0, 0, 1, 2)
-        self.grid.setAlignment(Qt.AlignTop)
-        self.grid.setAlignment(title_label, Qt.AlignHCenter)
-
-        self.content = {}
-
-        self.edit_buttons = QButtonGroup()
-        self.edit_buttons.buttonClicked[int].connect(self.edit_entry)
-
-        self.row = 1
-        for stat in self.character.stats[self.stat_name]:
-            item = Hover_Label(stat, self.character.stats[self.stat_name][stat])
-            edit_button = QPushButton("e")
-            edit_button.setMaximumWidth(15)
-            edit_button.setMaximumHeight(17)
-
-            self.content[self.row] = [item, edit_button, stat]
-            self.edit_buttons.addButton(edit_button,self.row)
-
-            self.grid.addWidget(self.content[self.row][1] ,self.row,0)
-            self.grid.addWidget(self.content[self.row][0] ,self.row,1,1,2)
-
+            #add to grid
+            self.grid.addWidget(label, self.row, 0)
+            self.grid.setAlignment(label, Qt.AlignRight)
+            self.grid.addWidget(spent, self.row, 1)
+            self.grid.addWidget(current, self.row, 2)
             self.row += 1
 
         
-        self.new_button = QPushButton("Add New")
-        self.new_button.setMaximumWidth(60)
-        self.grid.addWidget(self.new_button, self.row, 0,1,3)
-        self.new_button.clicked.connect(self.edit_entry)
 
-    def edit_entry(self,index=None):
-        #change into edit button 
-        '''
-        Removes row holding the clicked button.
-        '''
-        if not self.character.edit_mode:
-            #check is edit mode
-            #in future version edit mode toggle will disable button
-            return
-
-        if not index:
-            #add new item
-            current_title = None
-            label, tooltip, ok = Label_Tooltip_Dialog.get_input()
-
-        else:
-            #edit current item
-            current = self.content[index][0]
-            current_title = current.title
-            current_tooltip = current.tooltip
-            label, tooltip, ok = Label_Tooltip_Dialog.get_input(title = current_title, tooltip = current.tooltip, edit = True)
+    def update_mana(self):
+        #base change
+        self.character.stats['mana spent'] = self.spent.value()
+        self.spent.setMaximum(self.character.stats['mana'])
         
-        if ok and "####DELETE####" in label:
-            #delete chosen
-            #remove stat widget
-            self.grid.removeWidget(self.content[index][0])
-            sip.delete(self.content[index][0])
-            self.content[index][0] = None
+        current_num = self.character.stats['mana'] - self.character.stats['mana spent']
+        self.current.change_text(str(current_num) + "/" + str(self.character.stats['mana']))
 
-            #remove edit button
-            self.grid.removeWidget(self.content[index][1])
-            sip.delete(self.content[index][1])
-            self.content[index][1] = None
+        #rest changed
+        for item in self.ench_items:
+            name = self.ench_items[item][0]
+            spent_widget = self.ench_items[item][2]
+            current_widget = self.ench_items[item][3]
 
-            #remove associated data
-            del self.character.stats[self.stat_name][current_title]
-            del self.content[index]
-            
-        elif ok:
-            new = str(label).lower()
-            
-            #add/update entry on character object
-            self.character.stats[self.stat_name][new] = tooltip
+            #update character object
+            self.character.stats['ench items'][name][4] = spent_widget.value()
 
-            #this triggers if new button pushed
-            if not current_title:
-                #add new button pressed
-                new = str(label).lower()
-
-                #creates new Stat widget to display merit
-                item = Hover_Label(new, tooltip)
-                #adds a delete button for it too
-                edit_button = QPushButton("e")
-                edit_button.setMaximumWidth(15)
-                edit_button.setMaximumHeight(17)
-                self.edit_buttons.addButton(edit_button,self.row)
-                #adds it to the self.merits dict with current value of self.row as the key
-                self.content[self.row] = [item, edit_button, new]
-
-                #remove the add new button
-                self.grid.removeWidget(self.new_button)
-
-                #add the new Stat widget and delete button
-                self.grid.addWidget(self.content[self.row][1] ,self.row,0)
-                self.grid.addWidget(self.content[self.row][0] ,self.row,1,1,2)
-
-                #add 1 to self.row
-                self.row += 1
-
-                #add the new button back to end
-                self.grid.addWidget(self.new_button, self.row,0,1,3)
-            else:
-                #if not new button then reset tooltip
-                current.set_tooltip(tooltip)
-
-
-class Label_Tooltip_Dialog (QDialog):
-    '''
-    Dialog for entering/changing labels with tooltips
-    '''
-    def __init__(self, title = '', tooltip = '', edit = False):
-        super().__init__()
-        self.title = title
-        self.tooltip = tooltip
-        self.edit = edit
-        self.initUI()
-        self.setMaximumSize(20,20)
-
-    def initUI(self):
-        self.grid = QGridLayout()
-        self.setLayout(self.grid)
-
-        self.title_label = QLabel("Label:")
-        self.title_entry = QLineEdit()
-        self.title_entry.insert(self.title)
-
-        self.tooltip_label = QLabel("Tooltip:")
-        self.tooltip_entry = QTextEdit()
-        self.tooltip_entry.setText(self.tooltip)
-
-        if self.edit:
-            #add delete button and disable label box if editing
-            self.title_entry.setDisabled(self.edit)
-            buttonBox = QDialogButtonBox(QDialogButtonBox.Ok|QDialogButtonBox.Cancel|QDialogButtonBox.Discard, Qt.Horizontal, self)
-            buttonBox.button(QDialogButtonBox.Discard).clicked.connect(self.del_item)
-            buttonBox.button(QDialogButtonBox.Discard).setText("Delete")
-        else:
-            #adding new, only okay and cancel button
-            buttonBox = QDialogButtonBox(QDialogButtonBox.Ok|QDialogButtonBox.Cancel, Qt.Horizontal, self)
-
-
-        buttonBox.accepted.connect(self.accept)
-        buttonBox.rejected.connect(self.reject)
-
-        self.grid.addWidget(self.title_label, 0,0)
-        self.grid.addWidget(self.title_entry, 0,1)
-        self.grid.addWidget(self.tooltip_label, 1,0)
-        self.grid.setAlignment(self.tooltip_label, Qt.AlignTop)
-        self.grid.addWidget(self.tooltip_entry, 1,1)
-        self.grid.addWidget(buttonBox, 2,1)
-
-    def del_item(self):
-        '''
-        Handler for delete item action.
-        Sends an accept signal but adds a delete flag to output
-        '''
-        
-        self.title_entry.insert("####DELETE####")
-        self.accept()
-
-    def get_input(title = '', tooltip = '', edit = False):
-        '''
-        Used to open a dialog window to enter details of label.
-        '''
-        dialog = Label_Tooltip_Dialog(title, tooltip, edit)
-        result = dialog.exec_()
-        return (dialog.title_entry.text(), dialog.tooltip_entry.toPlainText(), result == QDialog.Accepted)
-        
-    
-
-class Hover_Label(QWidget):
-    def __init__(self, title, tooltip = ''):
-        super().__init__()
-        self.title = title
-        self.tooltip = tooltip
-        self.initUI()
-
-    def initUI(self):
-        self.grid = QGridLayout()
-        self.grid.setSpacing(0)
-        self.grid.setContentsMargins(0,0,0,0)
-        self.setLayout(self.grid)
-        
-        self.label = QLabel(self.title)
-
-        self.grid.addWidget(self.label,0,0)
-        self.set_tooltip(self.tooltip)
-
-    def set_tooltip(self, tooltip_text):
-        #also used to change tooltip after init
-        self.tooltip = tooltip_text
-        self.label.setToolTip(tooltip_text)
-        if tooltip_text == '':
-            self.label.setCursor(QCursor(Qt.ArrowCursor))
-
-        else:
-            self.label.setCursor(QCursor(Qt.WhatsThisCursor))
-
-if __name__ == '__main__':
-    #code to open UI for testing
-    app = QApplication(sys.argv)
-    char = Character()
-    char.stats['health'] = [1,1,1,1]
-    char.stats['merits']['test'] = 3
-    test = Sheet(char)
-    #test = Derivitives(char)
-    test.show()
-    sys.exit(app.exec_())
+            #update current display
+            current_num = self.character.stats['ench items'][name][3] - spent_widget.value()
+            current_widget.change_text(str(current_num) + "/" + str(self.character.stats['ench items'][name][3]))
