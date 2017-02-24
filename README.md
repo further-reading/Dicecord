@@ -20,7 +20,7 @@ To add a skill specialty, click the skill name in edit mode. A dialogue will app
 Merit, Condition, Aspiration and Obsession tooltips can be edited by clicking the item's name while in edit mode. A dialogue will appear allowing you to input changes, or you can press the "delete" button to clear the entry from the character entirely.
 
 ### Free Edit
-Edit mode will generally only restrict editing of items that should cost XP to change. The following items can be changed even when edit mode is inatcive:
+Edit mode will generally only restrict editing of items that should cost XP to change. The following items can be changed even when edit mode is inactive:
 
 - XP/Arcane XP
 - Beats/Arcane Beats
