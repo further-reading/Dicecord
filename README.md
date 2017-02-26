@@ -36,7 +36,7 @@ The Inventory tab shows a set of items/knowledge that the character posesses. So
 Active Spells and Weapons can be changed at all times. All other widgets here require edit mode to be active.
 
 ### Enchanted Items and Mana
-Enchanted items will update the mana widget on the stats page when new items are added. Note that there is a bug in the current version where this causes the mana object to appear squashed. To fix, save thw character and reopen it.
+Enchanted items will update the mana widget on the stats page when new items are added. Note that there is a bug in the current version where this causes the mana object to appear squashed. To fix, save the character and reopen it.
 
 ## Save and Import
 Characters are saved as .xml files. Saved characters can be imported into the tool by sleecting file -> open in the top menu. If unsaved changes are detected on the deactivation of edit mode or client exit a dialogue will appear asking the user to save changes.
