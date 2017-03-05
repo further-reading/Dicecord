@@ -3,12 +3,21 @@ A python based client for dispalying character sheets, rolling dice and printing
 
 ![Client](https://raw.githubusercontent.com/further-reading/Dicecord/master/dicecord full sample.PNG "Client")  
 
+## Splash Screen
+![Splash](https://raw.githubusercontent.com/further-reading/Dicecord/master/splash.PNG "Splash Screen")
+
+On activation you will be greeted with the splash screen. Use the commands to check for updates, create a new character or import a previously saved character.
+
+### New Character Dialogue
+The "New Character" dialogue will appear when selecting "New Character" from the splash screen of the File menu on a character sheet. It will ask you to select the type of character you are making and offer to switch dark era skills. At the time of writing only Mages can be selected.
+
 ## Character Sheet
 In the current build it displays the character sheet for Mage: the Awakening modern eras. The client shows three tabs: Stats, Inventory and Notes.
 
 ### Edit Mode
 In Edit Mode you change all of your character details. To activate edit mode click the edit button in the toolbar:  
-![Edit](https://raw.githubusercontent.com/further-reading/Dicecord/master/code/images/edit.ico "Edit")  
+![Edit](https://raw.githubusercontent.com/further-reading/Dicecord/master/code/images/edit.ico "Edit")  
+Note: When New Character is selected Edit Mode will be automatically activated.
 
 #### Remove Dots
 To remove all dots from a skill, click the first dot twice.
@@ -38,8 +47,17 @@ Active Spells and Weapons can be changed at all times. All other widgets here re
 ### Enchanted Items and Mana
 Enchanted items will update the mana widget on the stats page when new items are added. Note that there is a bug in the current version where this causes the mana object to appear squashed. To fix, save the character and reopen it.
 
+## Personality Settings
+Personality settings are used to offer additional commentary on your rolls. When you achieve an exceptional success (5 or more successes) or no successes the bot has a chance to add a positive or negative comment respectively. By default, it will send a positive message for 100% of exceptional successes but a negative one for only 50% of 0 success rolls.
+
+These rates, along with the messages themselves, can be edited by clicking "Personality Settings" in the "Options" menu of a character sheet.
+
+![Personality](https://raw.githubusercontent.com/further-reading/Dicecord/master/personality.PNG "Personality")
+
+Each message must be stored as a single line in the box. "[userID]" will be substituted with the UserID entered in your character sheet. Rate settings and messages are saved as part of your character.xml file.
+
 ## Save and Import
-Characters are saved as .xml files. Saved characters can be imported into the tool by sleecting file -> open in the top menu. If unsaved changes are detected on the deactivation of edit mode or client exit a dialogue will appear asking the user to save changes.
+Characters are saved as .xml files. Saved characters can be imported into the tool by selecting "File" -> "Open Character" in the top menu or "Import Character" in the splash screen. If unsaved changes are detected on the deactivation of edit mode or client exit a dialog will appear asking the user to save changes.
 
 ## Roll Instructions
 To open the roller, press the Dicecord symbol in the toolbar.  
@@ -62,11 +80,3 @@ The Chance Roll button rolls a chance die. On a chance die, only a 10 is a succe
 Webhooks have a "rate limit" that will cause commands to fail if too many are sent in quick succession. Generally, if more than 3 people are rolling at once you may hit the rate limit. The client will try to avoid this by waiting extra when the remaining messages on the current refresh are low. If a rate limit is hit Discord will return an error which states when the limit will refresh, the client will wait about half a second longer than its suggestion and try sending the result again.
 
 One way to avoid the rate limit is to create a dedicated webhook for each player. The downside of this approach is that the channel becomes pretty hard to read unless switched to compact mode.
-
-## Other planned features
-* Error handling for other webhook errors. Note that the final totals will be displayed in the client anyway.
-* Custom message for exceptional success.
-* Extended rolls.
-* Additional client messaging.
-* Dark era conversion.
-* Additional CofD splats.
