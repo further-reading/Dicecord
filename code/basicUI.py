@@ -1,8 +1,8 @@
-#Basic UI elements shared over Dicecord sheet and inventory UI objects.
-#   Copyright (C) 2017  Roy Healy
+# Basic UI elements shared over Dicecord sheet and inventory UI objects.
+#    Copyright (C) 2017  Roy Healy
 
 
-import sys, sip, stats
+import sip, stats
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
@@ -34,7 +34,7 @@ class Label_Entry_Combo(QWidget):
 
     def save_changes(self):
         new = self.content.text()
-        #if numeric userID, add <@ and > around it so discord will parse properly
+        # if numeric userID, add <@ and > around it so discord will parse properly
         if self.name == 'user id' and new.isdigit():
             new = '<@' + new + '>'
 
@@ -42,11 +42,11 @@ class Label_Entry_Combo(QWidget):
         self.content.setReadOnly(True)
 
     def edit_toggle(self):
-        #set read only status
+        # set read only status
         self.content.setReadOnly(not self.character.edit_mode)
 
         if not self.character.edit_mode:
-            #if edit mode turned off, apply changes
+            # if edit mode turned off, apply changes
             self.save_changes()
 
 class Stat_Col(QWidget):
@@ -55,7 +55,7 @@ class Stat_Col(QWidget):
         Makes a column of dots.
         Takes list of Tuples in the form (title, current, max) and the associated character object.
         '''
-        #Can rewrite to take list of keys instead.
+        # Can rewrite to take list of keys instead.
         super().__init__()
         self.stats = stats
         self.character = character
@@ -72,10 +72,14 @@ class Stat_Col(QWidget):
             
         for stat in self.stats:
             if self.type == "skill":
-                rotes = self.character.stats['rote skills']
-                rote_button = (Square(stat, self.character, filled= stat in rotes))
-                rote_button.clicked.connect(rote_button.change_Image)
-                grid.addWidget(rote_button,row,0)
+                # check if stat is on character - distinguishes dark era and modern era
+                if stat in self.character.stats:
+                    rotes = self.character.stats['rote skills']
+                    rote_button = (Square(stat, self.character, filled= stat in rotes))
+                    rote_button.clicked.connect(rote_button.change_Image)
+                    grid.addWidget(rote_button,row,0)
+                else:
+                    continue
                 
             grid.addWidget(Stat(self.character, stat, type = self.type),row,1)
             row += 1
@@ -113,31 +117,31 @@ class Stat(QWidget):
 
         if self.type == "skill":
             self.tooltip = ""
-            #label is a button to add specialties
+            # label is a button to add specialties
             self.label = QPushButton(self.name.title())
             self.label.setStyleSheet("QPushButton {border:none; font-size: 10pt; text-align: left}")
             self.label.clicked.connect(self.add_specialty)
             if self.name in self.character.stats['skill specialties']:
                 self.tooltip = self.character.stats['skill specialties'][self.name]
 
-                #skill specialty present - cursor and label font changed
+                # skill specialty present - cursor and label font changed
                 self.label.setCursor(QCursor(Qt.WhatsThisCursor))
                 self.label.setToolTip(self.tooltip)
                 self.label.setStyleSheet("QPushButton {border:none; font-size: 10pt; font: bold; text-align: left}")
 
         elif self.type == 'merit':
-            #like skill but click connection not set here
-            #click will allow for removing items so will be handled by a buttongroup in merit object
+            # like skill but click connection not set here
+            # click will allow for removing items so will be handled by a buttongroup in merit object
             self.tooltip = ""
             self.label = QPushButton(self.name.title())
             self.label.setStyleSheet("QPushButton {border:none; font-size: 10pt; text-align: left}")
             if len(self.name.title()) <= len("Investigation"):
-                #at minimum this will be as big as the longest default stat name
-                #If bigger then the UI will stretch to accomadate
+                # at minimum this will be as big as the longest default stat name
+                # If bigger then the UI will stretch to accomadate
                 self.label.setMinimumWidth(105)
             self.tooltip = self.character.stats['merit details'][self.name]
             if self.tooltip != '':
-                #if tooltip isn't blank, cursor and tolltip change added
+                # if tooltip isn't blank, cursor and tolltip change added
                 self.label.setCursor(QCursor(Qt.WhatsThisCursor))
                 self.label.setToolTip(self.tooltip)
         
@@ -148,8 +152,8 @@ class Stat(QWidget):
         
         box.addWidget(self.label)
 
-        #it will initilaise with the dots filled accoridng to character.stats['name']
-        #Each dot is an abstract button widget
+        # it will initilaise with the dots filled accoridng to character.stats['name']
+        # Each dot is an abstract button widget
         for x in range(1,self.maximum+1):
             if x <= self.current:
                 dots[x] = Dot(filled=True)
@@ -157,13 +161,13 @@ class Stat(QWidget):
                 dots[x] = Dot(filled=False)
             box.addWidget(dots[x])
 
-        #a button group is created that will be used for changing dot rating
-        #mght be possible to reorganise code to avoid second loop
+        # a button group is created that will be used for changing dot rating
+        # mght be possible to reorganise code to avoid second loop
         self.dot_group = Dots_Group(self.name, dots, self.character, maximum = self.maximum, type = self.type)
         for pos in dots:
             self.dot_group.addButton(dots[pos],pos)
 
-        #add a click handler for the entire group
+        # add a click handler for the entire group
         self.dot_group.buttonClicked[int].connect(self.dot_group.buttonClickedSlot)
 
     def initBigUI(self):
@@ -176,12 +180,12 @@ class Stat(QWidget):
         
         self.label = QLabel(self.name.title())
         self.label.setAlignment(Qt.AlignCenter)
-        #will one day use a proper CSS to set this
+        # will one day use a proper CSS to set this
         
         box.addWidget(self.label)
 
-        #it will initilaise with the dots filled accoridng to character.stats['name']
-        #Each dot is an abstract button widget
+        # it will initilaise with the dots filled accoridng to character.stats['name']
+        # Each dot is an abstract button widget
         for x in range(1,self.maximum+1):
             if x <= self.current:
                 dots[x] = Dot(filled=True)
@@ -191,13 +195,13 @@ class Stat(QWidget):
 
         box.addLayout(dotbox)
 
-        #a button group is created that will be used for changing dot rating
-        #mght be possible to reorganise code to avoid second loop
+        # a button group is created that will be used for changing dot rating
+        # mght be possible to reorganise code to avoid second loop
         self.dot_group = Dots_Group(self.name, dots, self.character, maximum = self.maximum)
         for pos in dots:
             self.dot_group.addButton(dots[pos],pos)
 
-        #add a click handler for the entire group
+        # add a click handler for the entire group
         self.dot_group.buttonClicked[int].connect(self.dot_group.buttonClickedSlot)
 
     def add_specialty(self):
@@ -207,7 +211,7 @@ class Stat(QWidget):
         if not self.character.edit_mode:
             return
         
-        label, tooltip, ok = Label_Tooltip_Dialog.get_input(wintitle = "Add Specialty/Notes", title="spec##", tooltip=self.tooltip)
+        label, tooltip, ok = Label_Tooltip_Dialog.get_input(wintitle = "Add Specialty/Notes", title="spec# # ", tooltip=self.tooltip)
 		
         if ok:
             self.character.stats['skill specialties'][self.name] = tooltip
@@ -217,7 +221,7 @@ class Stat(QWidget):
                 self.label.setToolTip(tooltip)
                 self.label.setStyleSheet("QPushButton {border:none; font-size: 10pt; font: bold; text-align: left}")
             else:
-                #if new tooltip is blank
+                # if new tooltip is blank
                 self.label.setCursor(QCursor(Qt.WhatsThisCursor))
                 self.label.setToolTip(tooltip)
                 self.label.setStyleSheet("QPushButton {border:none; font-size: 10pt; text-align: left}")
@@ -246,16 +250,16 @@ class Dots_Group(QButtonGroup):
         The associated stat in the character object will also be updated.
         '''
         if not self.character.edit_mode:
-            #nothing happens when not in edit mode
+            # nothing happens when not in edit mode
             return
         
         if self.last_click == index:
-            #if a dotis clicked a second time in a row it unfills it
+            # if a dotis clicked a second time in a row it unfills it
             index -= 1
         
         for x in range(1,self.maximum + 1):
-            #currently has maximum hard coded
-            #will need to replace with user entered maximum
+            # currently has maximum hard coded
+            # will need to replace with user entered maximum
             if x <= index:
                 self.dots[x].filled = True
                 self.dots[x].select_Image()
@@ -263,7 +267,7 @@ class Dots_Group(QButtonGroup):
                 self.dots[x].filled = False
                 self.dots[x].select_Image()
 
-        #associated stat is updated along with any derivitives
+        # associated stat is updated along with any derivitives
         if self.type == 'merit':
             self.character.stats['merits'][self.stat_name] = index
         else:
@@ -284,7 +288,7 @@ class Dot(QAbstractButton):
         self.select_Image()
 
     def paintEvent(self, event):
-        #paints the dot
+        # paints the dot
         painter = QPainter(self)
         painter.drawPixmap(event.rect(), self.pixmap)
 
@@ -329,7 +333,7 @@ class Square(QAbstractButton):
         self.select_Image()
 
     def paintEvent(self, event):
-        #paints the square
+        # paints the square
         painter = QPainter(self)
         painter.drawPixmap(event.rect(), self.pixmap)
 
@@ -345,7 +349,7 @@ class Square(QAbstractButton):
 
     def change_Image(self):
         if self.character.edit_mode and self.stat in stats.SKILLS:
-            #changes rote skills if edit mode
+            # changes rote skills if edit mode
             self.filled = not self.filled
             if self.filled:
                 self.character.stats['rote skills'].add(self.stat)
@@ -387,7 +391,7 @@ class Squares_Group(QButtonGroup):
         The associated stat in the character object will also be updated.
         '''
         if self.last_click == index:
-            #if a box is clicked twice in a row it unfills it
+            # if a box is clicked twice in a row it unfills it
             index -= 1
             
         for x in range(1, self.stat_max):
@@ -398,7 +402,7 @@ class Squares_Group(QButtonGroup):
                 self.squares[x].filled = False
                 self.squares[x].select_Image()
 
-        #associated stat is updated 
+        # associated stat is updated 
         self.character.stats[self.stat_name] = index
         self.last_click = index
 
@@ -469,8 +473,8 @@ class Hover_Label_Col(QWidget):
 
         
         if self.stat_name in ("conditions", "active spells"):
-            #other types only edited in edit mode
-            #new button not added unless edit mode toggled
+            # other types only edited in edit mode
+            # new button not added unless edit mode toggled
             self.new_button = QPushButton("Add New")
             self.new_button.setMaximumWidth(60)
             self.box.addWidget(self.new_button)
@@ -484,16 +488,16 @@ class Hover_Label_Col(QWidget):
 
         if self.stat_name not in ("conditions", "active spells"):
             if not self.character.edit_mode:
-                #other stats can only be changed in edit mode
+                # other stats can only be changed in edit mode
                 return
 
         if not index:
             current_title = None
-            #add new item if no index given
+            # add new item if no index given
             label, tooltip, ok = Label_Tooltip_Dialog.get_input(wintitle = "Add Item")
 
         else:
-            #edit current item
+            # edit current item
             current = self.content[index]
             current_title = current.text().title()
             current_tooltip = current.toolTip()
@@ -503,7 +507,7 @@ class Hover_Label_Col(QWidget):
             return
 
         if not current_title and label.lower() in self.character.stats[self.stat_name]:
-            #add new where title already in use
+            # add new where title already in use
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Warning)
 
@@ -514,12 +518,12 @@ class Hover_Label_Col(QWidget):
             retval = msg.exec_()
 
         elif not current_title:
-            #Only adds new if entry by that name does not exist yet
-            #add entry on character object
+            # Only adds new if entry by that name does not exist yet
+            # add entry on character object
             new = label.lower()
             self.character.stats[self.stat_name][new] = tooltip
 
-            #creates new button
+            # creates new button
             button = QPushButton(new.title())
             button.setCursor(QCursor(Qt.WhatsThisCursor))
             button.setToolTip(self.character.stats[self.stat_name][new])
@@ -528,45 +532,45 @@ class Hover_Label_Col(QWidget):
             self.content[self.row] = button
             self.edit_buttons.addButton(button,self.row)
 
-            #remove the add new button
+            # remove the add new button
             self.box.removeWidget(self.new_button)
 
-            #add the new Stat widget and delete button
+            # add the new Stat widget and delete button
             self.box.addWidget(button)
 
-            #add 1 to self.row
+            # add 1 to self.row
             self.row += 1
 
-            #add the new button back to end
+            # add the new button back to end
             self.box.addWidget(self.new_button)
         
 
-        elif "####DELETE####" in label:
-            #delete chosen
-            #remove stat widget
+        elif "# # # # DELETE# # # # " in label:
+            # delete chosen
+            # remove stat widget
             self.box.removeWidget(self.content[index])
             sip.delete(self.content[index])
 
-            #remove associated data
+            # remove associated data
             del self.character.stats[self.stat_name][current_title.lower()]
             del self.content[index]
             
         else:
-            #Update tooltip of existing entry
+            # Update tooltip of existing entry
             self.character.stats[self.stat_name][current.text()] = tooltip
             current.setToolTip(tooltip)
 
     def edit_toggle(self):
-        #used to add edit button
+        # used to add edit button
         if self.character.edit_mode:
-            #add the new button to end
+            # add the new button to end
             self.new_button = QPushButton("Add New")
             self.new_button.setMaximumWidth(60)
             self.new_button.clicked.connect(self.edit_entry)
             self.box.addWidget(self.new_button)
 
         else:
-            #remove new button
+            # remove new button
             self.box.removeWidget(self.new_button)
             sip.delete(self.new_button)
 
@@ -597,21 +601,21 @@ class Label_Tooltip_Dialog (QDialog):
         self.tooltip_entry.setText(self.tooltip)
 
         if self.edit:
-            #add delete button and disable label box if editing
+            # add delete button and disable label box if editing
             self.title_entry.setDisabled(self.edit)
             buttonBox = QDialogButtonBox(QDialogButtonBox.Ok|QDialogButtonBox.Cancel|QDialogButtonBox.Discard, Qt.Horizontal, self)
             buttonBox.button(QDialogButtonBox.Discard).clicked.connect(self.del_item)
             buttonBox.button(QDialogButtonBox.Discard).setText("Delete")
         else:
-            #adding new or specialty edit - only okay and cancel button
+            # adding new or specialty edit - only okay and cancel button
             buttonBox = QDialogButtonBox(QDialogButtonBox.Ok|QDialogButtonBox.Cancel, Qt.Horizontal, self)
 
 
         buttonBox.accepted.connect(self.accept)
         buttonBox.rejected.connect(self.reject)
 
-        if self.title != "spec##":
-            #don't add these if skill specialty edit
+        if self.title != "spec# # ":
+            # don't add these if skill specialty edit
             self.grid.addWidget(self.title_label, 0,0)
             self.grid.addWidget(self.title_entry, 0,1)
         
@@ -626,7 +630,7 @@ class Label_Tooltip_Dialog (QDialog):
         Sends an accept signal but adds a delete flag to output
         '''
         
-        self.title_entry.insert("####DELETE####")
+        self.title_entry.insert("# # # # DELETE# # # # ")
         self.accept()
 
     def get_input(wintitle, title = '', tooltip = '', edit = False):

@@ -2,14 +2,13 @@
 #   Copyright (C) 2017  Roy Healy
 
 import random
-import sys
 import stats
 from xml.etree.ElementTree import Element
 from xml.etree import ElementTree as etree
 from xml.dom import minidom
 
 class Character:
-    def __init__(self, stats=stats.STATS, notes = "", dark_age = False):
+    def __init__(self, stats=stats.STATS, goodMessages = stats.goodMessages, badMessages = stats.badMessages, goodrate = 100, badrate = 50, notes = ""):
         '''
         Class for holding players, making their rolls and saving their last rolls.
         Initialised with an ID, optional other variables include stats, whether it is a dark age game and webhook.
@@ -24,6 +23,12 @@ class Character:
 
         #character object has a text editor for taking notes
         self.notes = notes
+
+        #personality settings
+        self.goodMessages = goodMessages
+        self.badMessages = badMessages
+        self.goodRate = goodrate
+        self.badRate = badrate
 
         #some stats are derived, this function will calulate them based on the supplied stats sheet
         self.update_derivitives()
@@ -304,7 +309,30 @@ class Character:
                     item.append(rating)
                     item.append(mana)
                     item.append(mana_spent)
-                    
+        #Personality
+        for message in self.goodMessages:
+            item = Element('goodmessage')
+            root.append(item)
+
+            mess = Element('message')
+            item.append(mess)
+            mess.text = message
+
+        for message in self.badMessages:
+            item = Element('badmessage')
+            root.append(item)
+
+            mess = Element('message')
+            item.append(mess)
+            mess.text = message
+
+        item = Element('badrate')
+        root.append(item)
+        item.text = str(self.badRate)
+
+        item = Element('goodrate')
+        root.append(item)
+        item.text = str(self.goodRate)
 
         #write file
         rough_string = etree.tostring(root, 'utf-8')
@@ -331,7 +359,13 @@ class Character:
         notes = dom.find('notes')
         ench_items = dom.findall('enchitem')
         weapons = dom.findall('weapon')
-        
+        goodMessages = dom.findall('goodmessage')
+        badMessages = dom.findall('badmessage')
+        goodRate = dom.find('badrate')
+        badRate = dom.find('goodrate')
+
+        input_goodMessages = []
+        input_badMessages = []
         input_stats = {}
         input_stats['merits'] = {}
         input_stats['skill specialties'] = {}
@@ -408,11 +442,11 @@ class Character:
             input_stats[entry] = {}
             leaf = dom.find(entry)
             if leaf != None:
-                stats = leaf.findall('entry')
-                for stat in stats:
-                    name = stat.find('name').text
-                    if stat.find('tooltip') != None:
-                        tooltip = stat.find('tooltip').text
+                items = leaf.findall('entry')
+                for item in items:
+                    name = item.find('name').text
+                    if item.find('tooltip') != None:
+                        tooltip = item.find('tooltip').text
                     else:
                         tooltip = ''
                     
@@ -460,9 +494,39 @@ class Character:
             input_notes = ''
         else:
             input_notes = notes.find('content').text
+
+        if goodMessages:
+            for message in goodMessages:
+                mess = message.find('message').text
+                input_goodMessages.append(mess)
+        else:
+            input_goodMessages = stats.goodMessages
+
+        if badMessages:
+            for message in badMessages:
+                mess = message.find('message').text
+                input_badMessages.append(mess)
+        else:
+            input_badMessages = stats.badMessages
+
+        if goodRate != None:
+            input_goodRate = int(goodRate.text)
+        else:
+            input_goodRate = 100
+
+        if badRate != None:
+            input_badRate = int(badRate.text)
+        else:
+            input_badRate = 50
+
             
 
-        return cls(stats = input_stats, notes = input_notes)
+        return cls(stats = input_stats,
+                   goodMessages = input_goodMessages,
+                   badMessages = input_badMessages,
+                   goodrate = input_goodRate,
+                   badrate = input_badRate,
+                   notes = input_notes)
 
 
     def roll_set(self, dice, rote=False, again=10, quiet=False):
