@@ -39,10 +39,10 @@ class Character:
         '''
 
         #max mana depends on gnosis
-        if self.stats['gnosis'] <= 5:
-            self.stats['mana'] = 5 + self.stats['gnosis']
+        if self.stats['gnosis'] < 5:
+            self.stats['mana'] = 9 + self.stats['gnosis']
         elif self.stats['gnosis'] <= 8:
-            self.stats['mana'] = 20 + 10*(self.stats['gnosis'] - 6)
+            self.stats['mana'] = 15 + 5 * (self.stats['gnosis'] - 5)
         elif self.stats['gnosis'] == 9:
             self.stats['mana'] = 50
         else:
