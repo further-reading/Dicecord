@@ -68,12 +68,12 @@ Before rolling you need to add your user details to the character sheet.
 * Discord UserID: A numerical ID for your Discord username. You can get this by activating developer mode, right clicking on your name and selecting "Copy ID." When the correct ID is entered the results will include @mentions for you, which can make it easier to identify your own rolls.
 
 When these items are added you will be able to make rolls. By default it will do a normal Chronicles of Darkness roll (rolls a number of D10s, 8 or above is a success, 10s grant additional rerolls).  
-After making the roll, the client will post the result of each die to the channel before telling the final results. To avoid rate limiting (and add drama!) each message is sent after a delay of a second.  
+After making the roll, the client will post the result of the roll, including each die value, in a single line.
 Once the total successes are printed on the channel it will display it in the client too.  
 You can change whether it is 10, 9 or 8 again using the radio buttons on the right.  
 Checking the "Rote" box turns it into a rote roll, where any dice at 7 or less is rerolled once.  
-Checking the "Quiet Mode" box will send a one line summary of the roll. 
-To display your last roll, press Ctrl + H or go to File -> Show Last Roll. Quiet mode rolls will also be saved here.
+Checking the "Multiline" box will post the result of each die to the channel before telling the final results. To avoid rate limiting (and add drama!) each message is sent after a delay of a second.  
+To view your last roll again, press the "Show Last Roll" button. This will open a window in the client displaying the last roll.
 The Chance Roll button rolls a chance die. On a chance die, only a 10 is a success but a 1 is a botch (critical failure). Also 10s are no longe rerolled.  
 
 ## Note On Rate Limit
