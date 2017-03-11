@@ -19,6 +19,11 @@ In Edit Mode you change all of your character details. To activate edit mode cli
 ![Edit](https://raw.githubusercontent.com/further-reading/Dicecord/master/code/images/edit.ico "Edit")  
 Note: When New Character is selected Edit Mode will be automatically activated.
 
+### Discord Details
+Before rolling you need to add your Discord user and channel details to the character sheet.
+* Webhook URL: A [webhook](https://support.discordapp.com/hc/en-us/articles/228383668-Intro-to-Webhooks) for the channel that will share your rolls.
+* Discord UserID: A numerical ID for your Discord username. You can get this by activating developer mode, right clicking on your name and selecting "Copy ID." When the correct ID is entered the results will include @mentions for you, which can make it easier to identify your own rolls.
+
 #### Remove Dots
 To remove all dots from a skill, click the first dot twice.
 
@@ -63,7 +68,7 @@ Characters are saved as .xml files. Saved characters can be imported into the to
 To open the roller, press the Dicecord symbol in the toolbar.  
 ![D10](https://raw.githubusercontent.com/further-reading/Dicecord/master/code/images/D10.ico "D10")  
 ![Client](https://raw.githubusercontent.com/further-reading/Dicecord/master/client.PNG "Client")  
-Before rolling you need to add your user details to the character sheet.
+Before rolling you need to add your user and channel details to the character sheet.
 * Webhook URL: A [webhook](https://support.discordapp.com/hc/en-us/articles/228383668-Intro-to-Webhooks) for the channel that will share your rolls.
 * Discord UserID: A numerical ID for your Discord username. You can get this by activating developer mode, right clicking on your name and selecting "Copy ID." When the correct ID is entered the results will include @mentions for you, which can make it easier to identify your own rolls.
 
