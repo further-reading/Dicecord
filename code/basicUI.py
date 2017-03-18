@@ -1175,7 +1175,7 @@ class Hover_Label_Col(QWidget):
             self.box.addWidget(self.new_button)
         
 
-        elif "# # # # DELETE# # # # " in label:
+        elif "####DELETE####" in label:
             # delete chosen
             # remove stat widget
             self.box.removeWidget(self.content[index])
@@ -1260,7 +1260,7 @@ class Label_Tooltip_Dialog (QDialog):
         Sends an accept signal but adds a delete flag to output
         '''
         
-        self.title_entry.insert("# # # # DELETE# # # # ")
+        self.title_entry.insert("####DELETE####")
         self.accept()
 
     def get_input(wintitle, title = '', tooltip = '', edit = False):
