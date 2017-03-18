@@ -1,7 +1,7 @@
 # Dicecord: Dice Roller and Character Sheet Viewer for use in conjucntion with Discord Chat Channels
 # Copyright (C) 2017  Roy Healy
 # 
-# version 1.02
+# version 1.03
 
 
 from PyQt5.QtWidgets import *
@@ -16,7 +16,7 @@ import mageUI
 import mageInventory
 
 
-VERSION = "1.02"
+VERSION = "1.03"
 
 
 class Intro(QWidget):
