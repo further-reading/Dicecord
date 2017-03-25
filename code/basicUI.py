@@ -845,7 +845,7 @@ class Stat(QWidget):
         if not self.character.edit_mode:
             return
         
-        label, tooltip, ok = Label_Tooltip_Dialog.get_input(wintitle = "Add Specialty/Notes", title="spec# # ", tooltip=self.tooltip)
+        label, tooltip, ok = Label_Tooltip_Dialog.get_input(wintitle = "Add Specialty/Notes", title="spec##", tooltip=self.tooltip)
 		
         if ok:
             self.character.stats['skill specialties'][self.name] = tooltip
@@ -1244,7 +1244,7 @@ class Label_Tooltip_Dialog (QDialog):
         buttonBox.accepted.connect(self.accept)
         buttonBox.rejected.connect(self.reject)
 
-        if self.title != "spec# # ":
+        if self.title != "spec##":
             # don't add these if skill specialty edit
             self.grid.addWidget(self.title_label, 0,0)
             self.grid.addWidget(self.title_entry, 0,1)
