@@ -3,7 +3,7 @@
 
 import random
 from xml.etree import ElementTree as etree
-import mageUI
+import mageUI, vampireUI
 
 class Character:
     def __init__(self,
@@ -28,6 +28,8 @@ class Character:
         if not stats:
             if splat == 'mage':
                 stats = mageUI.DEFAULT
+            elif splat == 'vampire':
+                stats = vampireUI.DEFAULT
 
         # sets it into a copy to avoid mutation based errors
         self.stats = stats.copy()
@@ -39,10 +41,14 @@ class Character:
         if not goodMessages:
             if splat == 'mage':
                 goodMessages = mageUI.goodMessages
+            elif splat == 'vampire':
+                goodMessages = vampireUI.goodMessages
 
         if not badMessages:
             if splat == 'mage':
                 badMessages = mageUI.badMessages
+            elif splat == 'vampire':
+                badMessages = vampireUI.badMessages
 
         self.goodMessages = goodMessages
         self.badMessages = badMessages
@@ -57,9 +63,12 @@ class Character:
         Update values of derived stats.
         '''
 
-        # max mana depends on gnosis
+        # max resource depends on power stat
         if self.splat == "mage":
             mageUI.update_mana(self)
+        elif self.splat == "vampire":
+            pass
+            # mageUI.update_vitae(self)
 
         # Willpower = Resolve + Composure
         self.stats['willpower'] = self.stats['resolve'] + self.stats['composure']
@@ -73,7 +82,7 @@ class Character:
         # initiative = dexterity + composure
         self.stats['initiative'] = self.stats['dexterity'] + self.stats['composure']
 
-        # # defense is lower of dex and wits
+        # defense is lower of dex and wits
         self.stats['defense'] = min(self.stats['dexterity'], self.stats['wits'])
 
     

@@ -1103,7 +1103,5 @@ class Dice_Roller(QWidget):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     dr = Main()
-    #test = Intro(dr)
-    #test.show()
     dr.show()
     sys.exit(app.exec_())
