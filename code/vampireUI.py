@@ -6,6 +6,7 @@ import basicUI
 import player
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
+from PyQt5.QtGui import *
 from xml.dom import minidom
 from xml.etree.ElementTree import Element
 from xml.etree import ElementTree as etree
@@ -30,9 +31,10 @@ for col in HEADERS:
         DEFAULT[header] = ''
 
 DEFAULT['blood'] = 1
-DEFAULT['humanity'] = 7
+DEFAULT['humanity'] = {'rating': 7}
 DEFAULT['vitae spent'] = 0
 DEFAULT['banes'] = {}
+DEFAULT['disciplines'] = {}
 
 # remove dark era stats
 del DEFAULT['enigmas']
@@ -52,7 +54,16 @@ badMessages = ["Don't blame your bad luck on me, [userID]! I'm just a random num
 
 # vitae update
 def update_vitae(character):
-    pass
+    if character.stats['blood'] == 0:
+        character.stats['vitae'] = character.stats['stamina']
+    elif character.stats['blood'] < 5:
+        character.stats['vitae'] = 9 + character.stats['blood']
+    elif character.stats['blood'] <= 8:
+        character.stats['vitae'] = 15 + 5 * (character.stats['blood'] - 5)
+    elif character.stats['blood'] == 9:
+        character.stats['vitae'] = 50
+    else:
+        character.stats['vitae'] = 75
 
 # vampire sheet UI
 class StatsSheet(QWidget):
@@ -89,9 +100,10 @@ class StatsSheet(QWidget):
         self.skills = basicUI.Skills(self.character)
 
         # disciplines
+        self.disciplines = basicUI.StatWithTooltip(self.character, 'disciplines')
 
         # merits
-        self.merits = basicUI.Merits(self.character)
+        self.merits = basicUI.StatWithTooltip(self.character, 'merits')
 
         # advantages
         self.derivitives = basicUI.Derivitives(self.character)
@@ -106,7 +118,13 @@ class StatsSheet(QWidget):
         self.blood = basicUI.Stat(self.character, 'blood', maximum=10, small=False)
         self.blood.setMaximumSize(self.blood.sizeHint())
 
+        # Vitae
+        self.vitae = Vitae(self.character)
+
         # Humanity
+        humanitylabel = QLabel('Humanity')
+        humanitylabel.setStyleSheet("QLabel { font: 13pt}")
+        self.humanity = Humanity(self.character)
 
         # Aspirations
         self.aspirations = basicUI.Hover_Label_Col("ASPIRATIONS", self.character, 'aspirations')
@@ -124,37 +142,48 @@ class StatsSheet(QWidget):
 
         # left side
         grid.addWidget(self.attribute_mental, 3, 0)
-        grid.addWidget(self.skills, 4, 0, 4, 1)
+        grid.addWidget(self.skills, 4, 0, 5, 1)
         grid.setAlignment(self.skills, Qt.AlignTop)
 
         # middle
         grid.addWidget(self.attribute_physical, 3, 1)
-        #grid.addWidget(self.arcana, 4, 1)
+        grid.addWidget(self.disciplines, 4, 1)
         grid.addWidget(self.merits, 5, 1)
         grid.setAlignment(self.merits, Qt.AlignHCenter)
         grid.addWidget(self.aspirations, 6, 1)
         grid.addWidget(self.banes, 7, 1)
+        grid.addWidget(self.derivitives, 8, 1)
 
         # right
+        grid.addWidget(self.attribute_social, 3, 2)
+
         last_col = QVBoxLayout()
-        last_col.addWidget(self.attribute_social)
         last_col.addWidget(self.health)
         last_col.addWidget(self.willpower)
         last_col.setAlignment(self.willpower, Qt.AlignHCenter)
         last_col.addWidget(self.blood)
         last_col.setAlignment(self.blood, Qt.AlignHCenter)
-        #last_col.addWidget(wisdom)
-        #last_col.setAlignment(wisdom, Qt.AlignHCenter)
-        #last_col.addWidget(self.mana)
-        #last_col.setAlignment(self.mana, Qt.AlignHCenter)
-        last_col.addWidget(self.derivitives)
+        last_col.addWidget(self.vitae)
+        last_col.setAlignment(self.vitae, Qt.AlignHCenter)
+        last_col.addWidget(humanitylabel)
+        last_col.setAlignment(humanitylabel, Qt.AlignHCenter)
+        last_col.addWidget(self.humanity)
 
-        grid.addLayout(last_col, 3, 2, 4, 1)
+        grid.addLayout(last_col, 4, 2, 5, 1)
         grid.setAlignment(last_col, Qt.AlignTop)
+
+        # edit button for testing
+        # remove for dicecord merge
+        editbutton = QPushButton("Edit")
+        editbutton.clicked.connect(self.edit_toggle)
+        grid.addWidget(editbutton, 0, 0)
 
     def edit_toggle(self):
         # toggle edit mode on relevant stats
+        # remove first line when merging with dicecord
+        self.character.edit_mode = not self.character.edit_mode
         self.merits.edit_toggle()
+        self.disciplines.edit_toggle()
         self.banes.edit_toggle()
         self.aspirations.edit_toggle()
         self.char_info.edit_toggle()
@@ -166,6 +195,103 @@ class StatsSheet(QWidget):
             self.willpower.update()
             self.health.update_max()
 
+class Humanity(QWidget):
+    def __init__(self, character):
+        super().__init__()
+        self.character = character
+        self.initUI()
+
+    def initUI(self):
+        self.form = QFormLayout()
+        self.setLayout(self.form)
+        self.form.setSpacing(5)
+        self.form.setContentsMargins(0, 0, 0, 0)
+
+        self.widgets = {}
+        self.dots = QButtonGroup()
+        self.dots.buttonClicked[int].connect(self.edit_dots)
+
+        self.Derangements = QButtonGroup()
+        self.Derangements.buttonClicked[int].connect(self.edit_Derangement)
+        
+        for i in range(10, 0, -1):
+          self.widgets[i] = {}
+
+          # add numeric label
+          self.widgets[i]['ratinglabel'] = QLabel(str(i))
+          self.widgets[i]['ratinglabel'].setStyleSheet("QLabel { font: 12pt}")
+
+          # add dot
+          fillcheck = i <= self.character.stats['humanity']['rating']
+          self.widgets[i]['dot'] = basicUI.Dot(filled = fillcheck)
+          self.dots.addButton(self.widgets[i]['dot'],i)
+
+          # add Derangement
+          self.widgets[i]['label'] = QPushButton()
+          self.widgets[i]['label'].setCursor(QCursor(Qt.PointingHandCursor))
+          self.Derangements.addButton(self.widgets[i]['label'],i)
+
+          # check for Derangement details
+          if i in self.character.stats['humanity']:
+              title = self.character.stats['humanity'][i]['title']
+              tooltip = self.character.stats['humanity'][i]['tooltip']
+              # recheck
+              self.widgets[i]['label'].setText(title)
+              self.widgets[i]['label'].setToolTip(tooltip)
+
+          # add to layout
+          self.widgets[i]['boxdot'] = QHBoxLayout()
+          self.widgets[i]['boxdot'].addWidget(self.widgets[i]['dot'])
+          self.widgets[i]['boxdot'].addWidget(self.widgets[i]['label'])
+          self.form.addRow(self.widgets[i]['ratinglabel'], self.widgets[i]['boxdot'])
+
+    def edit_dots(self, value):
+
+        # only runs on edit mode
+        if not self.character.edit_mode:
+            return
+        
+        self.character.stats['humanity']['rating'] = value
+        for row in self.widgets:
+            if row <= value:
+                self.widgets[row]['dot'].filled = True
+                
+            else:
+                self.widgets[row]['dot'].filled = False
+                
+            self.widgets[row]['dot'].select_Image()
+
+    def edit_Derangement(self, index):
+        # only runs on edit mode
+        if not self.character.edit_mode:
+            return
+        
+        # open dialog to enter text/tooltip
+        current = self.widgets[index]['label']
+        current_title = current.text()
+        current_tooltip = current.toolTip()
+        title, tooltip, ok = basicUI.Label_Tooltip_Dialog.get_input(title = current_title, tooltip = current_tooltip, edit = False, wintitle = "Edit Derangement")
+        
+        # change button text
+        if not ok:
+            return
+
+        # update character object
+        if title == '':
+            # remove label and tooltip
+            current.setToolTip('')
+            current.setText('')
+            # remove associated data
+            
+            del self.character.stats['humanity'][index]
+        
+        else:
+            # Update tooltip and label of existing entry
+            new = {'title': title.title(), 'tooltip':tooltip}
+            self.character.stats['humanity'][index] = new
+            current.setToolTip(tooltip)
+            current.setText(title.title())
+        
 
 class Vitae(QWidget):
     def __init__(self, character):
@@ -184,39 +310,33 @@ class Vitae(QWidget):
         # Overall
         self.overall_label = QLabel("===VITAE===")
         self.overall_label.setStyleSheet("QLabel { font: 13pt}")
-        self.source_label = QLabel("Source")
-        self.source_label.setStyleSheet("QLabel {text-decoration: underline; font: 10pt}")
         self.spent_label = QLabel("Spent")
         self.spent_label.setStyleSheet("QLabel {text-decoration: underline; font: 10pt}")
         self.current_label = QLabel("Current")
         self.current_label.setStyleSheet("QLabel {text-decoration: underline; font: 10pt}")
 
-        self.grid.addWidget(self.overall_label, 0, 0, 1, 3)
+        self.grid.addWidget(self.overall_label, 0, 0, 1, 2)
         self.grid.setAlignment(self.overall_label, Qt.AlignHCenter)
-        self.grid.addWidget(self.source_label, 1, 0)
-        self.grid.setAlignment(self.source_label, Qt.AlignRight)
-        self.grid.addWidget(self.spent_label, 1, 1)
-        self.grid.addWidget(self.current_label, 1, 2)
-
-        ##Base
-        # base label
-        self.base_label = QLabel("Base : ")
+        self.grid.addWidget(self.spent_label, 1, 0)
+        self.grid.setAlignment(self.spent_label, Qt.AlignHCenter)
+        self.grid.addWidget(self.current_label, 1, 1)
+        self.grid.setAlignment(self.current_label, Qt.AlignHCenter)
 
         # base spent
         self.spent = QSpinBox()
-        self.spent.setValue(self.character.stats['mana spent'])
+        self.spent.setValue(self.character.stats['vitae spent'])
         self.spent.setMaximumSize(QSize(35, 20))
-        self.spent.setMaximum(self.character.stats['mana'])
-        self.spent.valueChanged.connect(self.update_mana)
+        self.spent.setMaximum(self.character.stats['vitae'])
+        self.spent.valueChanged.connect(self.update_vitae)
 
         # base current
-        current_num = self.character.stats['mana'] - self.character.stats['mana spent']
-        self.current = basicUI.Num_with_Line(str(current_num) + "/" + str(self.character.stats['mana']))
+        current_num = self.character.stats['vitae'] - self.character.stats['vitae spent']
+        self.current = basicUI.Num_with_Line(str(current_num) + "/" + str(self.character.stats['vitae']))
 
-        self.grid.addWidget(self.base_label, 2, 0)
-        self.grid.setAlignment(self.base_label, Qt.AlignRight)
-        self.grid.addWidget(self.spent, 2, 1)
-        self.grid.addWidget(self.current, 2, 2)
+        self.grid.addWidget(self.spent, 2, 0)
+        self.grid.setAlignment(self.spent, Qt.AlignHCenter)
+        self.grid.addWidget(self.current, 2, 1)
+        self.grid.setAlignment(self.current, Qt.AlignHCenter)
 
     def update_vitae(self):
         # base change
@@ -228,9 +348,8 @@ class Vitae(QWidget):
 
 def save_xml(character, path):
     pass
-    # CHANGE
     '''
-    Save mage as xml
+    Save vampire as xml
     :param character: Character object
     :param path: Path to save file
     :return: None
@@ -271,31 +390,26 @@ def save_xml(character, path):
                 item.append(tooltip)
                 tooltip.text = character.stats['skill specialties'][stat]
 
-            if stat in character.stats['rote skills']:
-                rote = Element('rote')
-                item.append(rote)
-                rote.text = "True"
-
-        # merits
-        elif stat == 'merits':
-            for merit in character.stats['merits']:
-                item = Element('merit')
+        # stats with tooltips
+        elif stat in ('merits', 'disciplines'):
+            for content in character.stats[stat]:
+                item = Element(stat)
                 root.append(item)
 
                 name = Element('name')
                 item.append(name)
-                name.text = merit
+                name.text = content
 
                 rating = Element('rating')
                 item.append(rating)
-                rating.text = str(character.stats['merits'][merit])
+                rating.text = str(character.stats[stat][content]['rating'])
 
-                if merit in character.stats['merit details']:
+                if 'tooltip' in character.stats[stat][content]:
                     tooltip = Element('tooltip')
                     item.append(tooltip)
-                    tooltip.text = character.stats['merit details'][merit]
+                    tooltip.text = character.stats[stat][content]['tooltip']
 
-        elif stat in ('skill specialties', 'merit details', 'rote skills'):
+        elif stat in ('skill specialties'):
             # skip these - added when associated merit/skill added
             pass
 
@@ -491,37 +605,16 @@ def from_xml(dom):
     merits = dom.findall('merit')
     health = dom.find('health')
     weapons = dom.findall('weapon')
-    praxes = dom.findall('praxis')
-    rotes = dom.findall('rote')
+    disciplines = dom.findall('disciplines')
     others = dom.findall('other')
-    ench_items = dom.findall('enchitem')
 
     input_stats = {}
     input_stats['merits'] = {}
     input_stats['skill specialties'] = {}
-    input_stats['merit details'] = {}
-    input_stats['rote skills'] = set([])
-    input_stats['rotes'] = {}
     input_stats['health'] = [0, 0, 0, 0]
-    input_stats['ench items'] = {}
-    input_stats['praxes'] = {}
+    input_stats['disciplines'] = {}
     input_stats['weapons'] = {}
-    specials = ['conditions', 'aspirations', 'obsessions', 'active spells', 'attainments', 'magtool']
-
-    for item in ench_items:
-        name = item.find('name').text
-        item_type = item.find('item_type').text
-
-        if item.find('tooltip') != None:
-            tooltip = item.find('tooltip').text
-        else:
-            tooltip = ''
-
-        rating = item.find('rating').text
-        mana = item.find('mana').text
-        mana_spent = item.find('mana_spent').text
-
-        input_stats['ench items'][name] = [item_type, tooltip, int(rating), int(mana), int(mana_spent)]
+    specials = ['conditions', 'aspirations', 'banes']
 
     for weapon in weapons:
         name = weapon.find('name').text
@@ -551,17 +644,23 @@ def from_xml(dom):
             tooltip = skill.find('tooltip').text
             input_stats['skill specialties'][name] = tooltip
 
-        if skill.find('rote') != None:
-            input_stats['rote skills'].add(name)
-
     for merit in merits:
         name = merit.find('name').text
         rating = merit.find('rating').text
-        input_stats['merits'][name] = int(rating)
+        input_stats['merits'][name]['rating'] = int(rating)
 
         if merit.find('tooltip') != None:
             tooltip = merit.find('tooltip').text
-            input_stats['merit details'][name] = tooltip
+            input_stats['merits'][name]['tooltip'] = tooltip
+
+    for discipline in disciplines:
+        name = discipline.find('name').text
+        rating = discipline.find('rating').text
+        input_stats['disciplines'][name]['rating'] = int(rating)
+
+        if discipline.find('tooltip') != None:
+            tooltip = discipline.find('tooltip').text
+            input_stats['disciplines'][name]['tooltip'] = tooltip
 
     dam_type = 1
     for damage in ['bashing', 'lethal', 'agg']:
@@ -582,29 +681,6 @@ def from_xml(dom):
                     tooltip = ''
 
                 input_stats[entry][name] = tooltip
-
-    for praxis in praxes:
-        name = praxis.find('name').text
-        arcanum = praxis.find('arcanum').text
-
-        if praxis.find('tooltip') != None:
-            tooltip = praxis.find('tooltip').text
-        else:
-            tooltip = ""
-
-        input_stats['praxes'][name] = {'tooltip': tooltip, 'arcanum': arcanum}
-
-    for rote in rotes:
-        name = rote.find('name').text
-        tooltip = rote.find('tooltip').text
-        arcanum = rote.find('arcanum').text
-        skill = rote.find('skill').text
-
-        if tooltip == None:
-            # happens when tooltip is blank
-            tooltip = ''
-
-        input_stats['rotes'][name] = [tooltip, arcanum, skill]
 
     for other in others:
         name = other.find('name').text

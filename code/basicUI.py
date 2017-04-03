@@ -156,15 +156,16 @@ class Stat_Col(QWidget):
             row += 1
         
 
-class Merits(QWidget):
+class StatWithTooltip(QWidget):
     '''
-    Object for holding merits.
-    Handles addition and removal of merits along with rating update.
+    Object for holding stats with hover tooltips.
+    Handles addition and removal of stats along with rating update.
     '''
 
-    def __init__(self, character):
+    def __init__(self, character, name):
         super().__init__()
         self.character = character
+        self.name = name
         self.setStyleSheet("QLabel { font: 13pt}")
         self.initUI()
 
@@ -174,10 +175,10 @@ class Merits(QWidget):
         self.box.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.box)
 
-        stats = self.character.stats['merits']
-        self.merits = {}
+        content = self.character.stats[self.name]
+        self.stats = {}
 
-        self.label = QLabel('===MERITS===')
+        self.label = QLabel('===' + self.name.upper() + '===')
         self.box.addWidget(self.label)
         self.box.setAlignment(Qt.AlignTop)
         self.box.setAlignment(self.label, Qt.AlignHCenter)
@@ -187,16 +188,16 @@ class Merits(QWidget):
         self.delete_buttons.buttonClicked[int].connect(self.edit_entry)
 
         self.row = 1
-        for stat in stats:
+        for stat in content:
             # There can be a variable number of merits, so must be drawn with a loop.
             # starts at 1 since the label takes the 0 spot.
-            merit = Stat(self.character, stat, type="merit")
+            item = Stat(self.character, stat, type="tooltip", group = self.name)
             # a self.merits dict is made to help with deltion method
-            self.merits[self.row] = merit
+            self.stats[self.row] = item
             # delete buttons are added to a button group with their row as an ID
-            self.delete_buttons.addButton(merit.label, self.row)
+            self.delete_buttons.addButton(item.label, self.row)
 
-            self.box.addWidget(self.merits[self.row])
+            self.box.addWidget(self.stats[self.row])
 
             self.row += 1
 
@@ -228,26 +229,26 @@ class Merits(QWidget):
         if not index:
             current_title = None
             # add new item if no index given
-            label, tooltip, ok = Label_Tooltip_Dialog.get_input(wintitle="Add Merit")
+            new, tooltip, ok = Label_Tooltip_Dialog.get_input(wintitle="Add " + self.name.title())
 
         else:
             # edit current item
-            current = self.merits[index]
-            current_title = current.label.text().title()
+            current = self.stats[index]
+            current_title = current.label.text().lower()
             current_tooltip = current.label.toolTip()
-            label, tooltip, ok = Label_Tooltip_Dialog.get_input(title=current_title, tooltip=current_tooltip,
-                                                                        edit=True, wintitle="Change Merit")
+            label, tooltip, ok = Label_Tooltip_Dialog.get_input(title=current_title.title(), tooltip=current_tooltip,
+                                                                        edit=True, wintitle="Change " + self.name.title())
 
         if not ok:
             # cancel pressed
             return
 
-        if not current_title and label.lower() in self.character.stats['merits']:
+        if not current_title and new in self.character.stats[self.name]:
             # add new but title already in use
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Warning)
 
-            msg.setText("Merit with this name already exists.")
+            msg.setText("Item with this name already exists.")
             msg.setInformativeText("Please use unique name.")
             msg.setWindowTitle("Duplicate Name")
             msg.setStandardButtons(QMessageBox.Ok)
@@ -256,20 +257,18 @@ class Merits(QWidget):
         elif not current_title:
             # Only adds new if entry by that name does not exist yet
             # add entry on character object
-            new = label.lower()
-            self.character.stats["merit details"][new] = tooltip
-            self.character.stats["merits"][new] = 0
+            self.character.stats[self.name][new] = {'rating': 0, 'tooltip': tooltip}
 
             # creates entry
-            merit = Stat(self.character, new, type="merit")
-            self.merits[self.row] = merit
-            self.delete_buttons.addButton(merit.label, self.row)
+            item = Stat(self.character, new, type="tooltip", group = self.name)
+            self.stats[self.row] = item
+            self.delete_buttons.addButton(item.label, self.row)
 
             # remove the add new button
             self.box.removeWidget(self.new_button)
 
             # add the new Stat widget and delete button
-            self.box.addWidget(merit)
+            self.box.addWidget(item)
 
             # add 1 to self.row
             self.row += 1
@@ -278,21 +277,20 @@ class Merits(QWidget):
             self.box.addWidget(self.new_button)
 
 
-        elif "####DELETE####" in label:
+        elif "####delete####" in label:
             # delete chosen
             # remove stat widget
-            self.box.removeWidget(self.merits[index])
-            sip.delete(self.merits[index])
+            self.box.removeWidget(self.stats[index])
+            sip.delete(self.stats[index])
 
             # remove associated data
-            del self.character.stats["merits"][current_title.lower()]
-            del self.character.stats["merit details"][current_title.lower()]
-            del self.merits[index]
+            del self.character.stats[self.name][current_title]
+            del self.stats[index]
 
         else:
             # Update tooltip of existing entry
             current.label.setToolTip(tooltip)
-            self.character.stats["merit details"][current_title.lower()] = tooltip
+            self.character.stats[self.name][current_title]['tooltip'] = tooltip
             if tooltip == '':
                 # update cursor if blank now
                 current.label.setCursor(QCursor(Qt.ArrowCursor))
@@ -725,16 +723,18 @@ class Stat(QWidget):
     In form "name\n OOOOO" for big dots
     '''
     
-    def __init__(self, character, name, maximum = 5, small=True, type=""):
+    def __init__(self, character, name, maximum = 5, small=True, type="", group = ''):
         super().__init__()
         self.maximum = maximum
         self.name = name
         self.character = character
         self.type = type
-        if self.type == "merit":
-            self.current = character.stats['merits'][name]
+        if self.type == "tooltip":
+            self.current = character.stats[group][name]['rating']
+            self.tooltip = character.stats[group][name]['tooltip']
         else:
             self.current = character.stats[name]
+            
         if small:
             self.setStyleSheet("QLabel { font: 10pt}")
             self.initSmallUI()
@@ -763,17 +763,15 @@ class Stat(QWidget):
                 self.label.setToolTip(self.tooltip)
                 self.label.setStyleSheet("QPushButton {border:none; font-size: 10pt; font: bold; text-align: left}")
 
-        elif self.type == 'merit':
+        elif self.type == 'tooltip':
             # like skill but click connection not set here
-            # click will allow for removing items so will be handled by a buttongroup in merit object
-            self.tooltip = ""
+            # click will allow for removing items so will be handled by a buttongroup in main object
             self.label = QPushButton(self.name.title())
             self.label.setStyleSheet("QPushButton {border:none; font-size: 10pt; text-align: left}")
             if len(self.name.title()) <= len("Investigation"):
                 # at minimum this will be as big as the longest default stat name
                 # If bigger then the UI will stretch to accomadate
                 self.label.setMinimumWidth(105)
-            self.tooltip = self.character.stats['merit details'][self.name]
             if self.tooltip != '':
                 # if tooltip isn't blank, cursor and tolltip change added
                 self.label.setCursor(QCursor(Qt.WhatsThisCursor))
@@ -1175,7 +1173,7 @@ class Hover_Label_Col(QWidget):
             self.box.addWidget(self.new_button)
         
 
-        elif "####DELETE####" in label:
+        elif "####delete####" in label:
             # delete chosen
             # remove stat widget
             self.box.removeWidget(self.content[index])
@@ -1269,7 +1267,9 @@ class Label_Tooltip_Dialog (QDialog):
         '''
         dialog = Label_Tooltip_Dialog(title, tooltip, edit, wintitle)
         result = dialog.exec_()
-        return (dialog.title_entry.text(), dialog.tooltip_entry.toPlainText(), result == QDialog.Accepted)
+        title = dialog.title_entry.text().lower()
+        tooltip = dialog.tooltip_entry.toPlainText()
+        return (title, tooltip, result == QDialog.Accepted)
 
 
 class Weapons(QWidget):

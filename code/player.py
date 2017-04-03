@@ -67,6 +67,7 @@ class Character:
         if self.splat == "mage":
             mageUI.update_mana(self)
         elif self.splat == "vampire":
+            vampireUI.update_vitae(self)
             pass
             # mageUI.update_vitae(self)
 
