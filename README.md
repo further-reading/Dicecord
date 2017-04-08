@@ -1,7 +1,26 @@
 # Dicecord - A Discord Diceroller and Character Sheet
 A python based client for dispalying character sheets, rolling dice and printing results to a Discord chat channel. Uses Chronicles of Darkenss ruleset.
 
-![Client](https://raw.githubusercontent.com/further-reading/Dicecord/master/dicecord full sample.PNG "Client")  
+**Table of Contents**  *generated with [DocToc](http://doctoc.herokuapp.com/)*
+
+- [Splash Screen](#)
+	- [New Character Dialogue](#)
+- [Character Sheet](#)
+	- [Edit Mode](#)
+	- [Discord Details](#)
+		- [Remove Dots](#)
+		- [Skill Specialties](#)
+		- [Edit Entry Details](#)
+	- [Free Edit](#)
+- [Inventory](#)
+	- [Edit Mode](#)
+	- [Enchanted Items and Mana](#)
+- [Personality Settings](#)
+- [Save and Import](#)
+- [Roll Instructions](#)
+- [Note On Rate Limit](#)
+
+![Client](https://raw.githubusercontent.com/further-reading/Dicecord/master/dicecord%20full%20sample.PNG "Client")  
 
 ## Splash Screen
 ![Splash](https://raw.githubusercontent.com/further-reading/Dicecord/master/splash.PNG "Splash Screen")
