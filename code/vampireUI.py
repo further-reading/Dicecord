@@ -35,6 +35,20 @@ DEFAULT['humanity'] = {'rating': 7}
 DEFAULT['vitae spent'] = 0
 DEFAULT['banes'] = {}
 DEFAULT['disciplines'] = {}
+DEFAULT['languages'] = {}
+DEFAULT['history'] = ""
+DEFAULT['other traits'] = {}
+DEFAULT['description'] = ''
+DEFAULT['age'] = ''
+DEFAULT['apparant age'] = ''
+DEFAULT['sex'] = ''
+DEFAULT['race'] = ''
+DEFAULT['hair'] = ''
+DEFAULT['eyes'] = ''
+DEFAULT['height'] = ''
+DEFAULT['weight'] = ''
+DEFAULT['rites or miracles'] = {}
+DEFAULT['equipment'] = {}
 
 # remove dark era stats
 del DEFAULT['enigmas']
@@ -122,7 +136,7 @@ class StatsSheet(QWidget):
         self.vitae = Vitae(self.character)
 
         # Humanity
-        humanitylabel = QLabel('Humanity')
+        humanitylabel = QLabel('===HUMANITY===')
         humanitylabel.setStyleSheet("QLabel { font: 13pt}")
         self.humanity = Humanity(self.character)
 
@@ -168,6 +182,7 @@ class StatsSheet(QWidget):
         last_col.addWidget(humanitylabel)
         last_col.setAlignment(humanitylabel, Qt.AlignHCenter)
         last_col.addWidget(self.humanity)
+        last_col.setAlignment(self.humanity, Qt.AlignHCenter)
 
         grid.addLayout(last_col, 4, 2, 5, 1)
         grid.setAlignment(last_col, Qt.AlignTop)
@@ -211,8 +226,8 @@ class Humanity(QWidget):
         self.dots = QButtonGroup()
         self.dots.buttonClicked[int].connect(self.edit_dots)
 
-        self.Derangements = QButtonGroup()
-        self.Derangements.buttonClicked[int].connect(self.edit_Derangement)
+        self.derangements = QButtonGroup()
+        self.derangements.buttonClicked[int].connect(self.edit_Derangement)
         
         for i in range(10, 0, -1):
           self.widgets[i] = {}
@@ -227,17 +242,18 @@ class Humanity(QWidget):
           self.dots.addButton(self.widgets[i]['dot'],i)
 
           # add Derangement
-          self.widgets[i]['label'] = QPushButton()
+          self.widgets[i]['label'] = basicUI.Lined_Button("")
           self.widgets[i]['label'].setCursor(QCursor(Qt.PointingHandCursor))
-          self.Derangements.addButton(self.widgets[i]['label'],i)
+          
+          self.derangements.addButton(self.widgets[i]['label'].button,i)
 
           # check for Derangement details
           if i in self.character.stats['humanity']:
               title = self.character.stats['humanity'][i]['title']
               tooltip = self.character.stats['humanity'][i]['tooltip']
               # recheck
-              self.widgets[i]['label'].setText(title)
-              self.widgets[i]['label'].setToolTip(tooltip)
+              self.widgets[i]['label'].change_text(title)
+              self.widgets[i]['label'].button.setToolTip(tooltip)
 
           # add to layout
           self.widgets[i]['boxdot'] = QHBoxLayout()
@@ -268,8 +284,8 @@ class Humanity(QWidget):
         
         # open dialog to enter text/tooltip
         current = self.widgets[index]['label']
-        current_title = current.text()
-        current_tooltip = current.toolTip()
+        current_title = current.text
+        current_tooltip = current.tooltip
         title, tooltip, ok = basicUI.Label_Tooltip_Dialog.get_input(title = current_title, tooltip = current_tooltip, edit = False, wintitle = "Edit Derangement")
         
         # change button text
@@ -279,8 +295,7 @@ class Humanity(QWidget):
         # update character object
         if title == '':
             # remove label and tooltip
-            current.setToolTip('')
-            current.setText('')
+            current.change_text()
             # remove associated data
             
             del self.character.stats['humanity'][index]
@@ -289,8 +304,7 @@ class Humanity(QWidget):
             # Update tooltip and label of existing entry
             new = {'title': title.title(), 'tooltip':tooltip}
             self.character.stats['humanity'][index] = new
-            current.setToolTip(tooltip)
-            current.setText(title.title())
+            current.change_text(title.title(), tooltip)
         
 
 class Vitae(QWidget):

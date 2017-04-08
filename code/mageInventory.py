@@ -9,6 +9,8 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 import basicUI
 import mageUI
+import player
+import sys
 
 class InventorySheet(QWidget):
     '''
@@ -33,8 +35,8 @@ class InventorySheet(QWidget):
 
         # Rotes
         self.rotes = Rotes(self.character)
-        # Nimbus tilt
-        self.nimbus = Nimbus(self.character)
+        # Nimbus
+        self.nimbus = basicUI.TextBoxEntry(self.character, 'nimbus')
         # Enchanted Items
         self.enchitems = Ench_Items(self.character, self.stats_sheet.mana)
         # Combat
@@ -364,59 +366,6 @@ class Praxis_Dialog(QDialog):
         out_tooltip = dialog.tooltip_entry.toPlainText()
         out_arcanum = dialog.arcanum_entry.currentText().lower()
         return (out_name, out_tooltip, out_arcanum, result == QDialog.Accepted)
-
-
-class Nimbus(QWidget):
-    def __init__(self, character):
-        super().__init__()
-        self.character = character
-        self.initUI()
-        self.setMaximumWidth(250)
-
-    def initUI(self):
-        self.grid = QGridLayout()
-        self.setLayout(self.grid)
-        self.grid.setAlignment(Qt.AlignTop)
-
-        overall_label = QLabel()
-        overall_label.setText('==Nimbus==')
-        overall_label.setStyleSheet("QLabel {font: 13pt;}")
-        self.grid.addWidget(overall_label, 0, 0)
-        self.grid.setAlignment(overall_label, Qt.AlignHCenter)
-
-        if self.character.stats['nimbus'] == "":
-            self.nimbus = QPushButton("Add Nimbus Info")
-        else:
-            self.nimbus = QPushButton(self.character.stats['nimbus'])
-            self.nimbus.setStyleSheet("QPushButton {border: none; font: 10pt;}")
-        self.nimbus.clicked.connect(self.edit)
-
-        self.grid.addWidget(self.nimbus, 1, 0)
-        self.grid.setAlignment(overall_label, Qt.AlignHCenter)
-
-    def edit(self):
-        # only possible if edit mode activated
-        if self.character.edit_mode:
-            self.nimbus_entry = QTextEdit()
-            self.nimbus_entry.setText(self.character.stats['nimbus'])
-            self.save_button = QPushButton("Save Changes")
-            self.save_button.clicked.connect(self.save)
-
-            self.grid.removeWidget(self.nimbus)
-            self.grid.addWidget(self.nimbus_entry, 1, 0)
-            self.grid.addWidget(self.save_button, 2, 0)
-
-    def save(self):
-        self.grid.removeWidget(self.nimbus_entry)
-        text = self.nimbus_entry.toPlainText()
-        self.character.stats['nimbus'] = text
-        self.grid.removeWidget(self.save_button)
-        sip.delete(self.nimbus_entry)
-        sip.delete(self.save_button)
-
-        self.grid.addWidget(self.nimbus, 1, 0)
-        self.nimbus.setText(text)
-        self.nimbus.setStyleSheet("QPushButton {border: none; font: 10pt;}")
 
 
 class Ench_Items(QWidget):
