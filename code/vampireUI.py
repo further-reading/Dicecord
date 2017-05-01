@@ -7,9 +7,6 @@ import player
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
-from xml.dom import minidom
-from xml.etree.ElementTree import Element
-from xml.etree import ElementTree as etree
 import sys
 
 # Vampire sheet headers
@@ -31,7 +28,8 @@ for col in HEADERS:
         DEFAULT[header] = ''
 
 DEFAULT['blood'] = 1
-DEFAULT['humanity'] = {'rating': 7}
+DEFAULT['humanity'] = 7
+DEFAULT['derangements'] = {}
 DEFAULT['vitae spent'] = 0
 DEFAULT['banes'] = {}
 DEFAULT['disciplines'] = {}
@@ -187,16 +185,9 @@ class StatsSheet(QWidget):
         grid.addLayout(last_col, 4, 2, 5, 1)
         grid.setAlignment(last_col, Qt.AlignTop)
 
-        # edit button for testing
-        # remove for dicecord merge
-        editbutton = QPushButton("Edit")
-        editbutton.clicked.connect(self.edit_toggle)
-        grid.addWidget(editbutton, 0, 0)
-
     def edit_toggle(self):
         # toggle edit mode on relevant stats
         # remove first line when merging with dicecord
-        self.character.edit_mode = not self.character.edit_mode
         self.merits.edit_toggle()
         self.disciplines.edit_toggle()
         self.banes.edit_toggle()
@@ -237,7 +228,7 @@ class Humanity(QWidget):
           self.widgets[i]['ratinglabel'].setStyleSheet("QLabel { font: 12pt}")
 
           # add dot
-          fillcheck = i <= self.character.stats['humanity']['rating']
+          fillcheck = i <= self.character.stats['humanity']
           self.widgets[i]['dot'] = basicUI.Dot(filled = fillcheck)
           self.dots.addButton(self.widgets[i]['dot'],i)
 
@@ -248,9 +239,9 @@ class Humanity(QWidget):
           self.derangements.addButton(self.widgets[i]['label'].button,i)
 
           # check for Derangement details
-          if i in self.character.stats['humanity']:
-              title = self.character.stats['humanity'][i]['title']
-              tooltip = self.character.stats['humanity'][i]['tooltip']
+          if i in self.character.stats['derangements']:
+              title = self.character.stats['derangements'][i]['title']
+              tooltip = self.character.stats['derangements'][i]['tooltip']
               # recheck
               self.widgets[i]['label'].change_text(title)
               self.widgets[i]['label'].button.setToolTip(tooltip)
@@ -267,7 +258,7 @@ class Humanity(QWidget):
         if not self.character.edit_mode:
             return
         
-        self.character.stats['humanity']['rating'] = value
+        self.character.stats['humanity'] = value
         for row in self.widgets:
             if row <= value:
                 self.widgets[row]['dot'].filled = True
@@ -298,12 +289,12 @@ class Humanity(QWidget):
             current.change_text()
             # remove associated data
             
-            del self.character.stats['humanity'][index]
+            del self.character.stats['derangements'][index]
         
         else:
             # Update tooltip and label of existing entry
             new = {'title': title.title(), 'tooltip':tooltip}
-            self.character.stats['humanity'][index] = new
+            self.character.stats['derangements'][index] = new
             current.change_text(title.title(), tooltip)
         
 
@@ -338,7 +329,7 @@ class Vitae(QWidget):
 
         # base spent
         self.spent = QSpinBox()
-        self.spent.setValue(self.character.stats['vitae spent'])
+        self.spent.setValue(int(self.character.stats['vitae spent'])) # might be string if read
         self.spent.setMaximumSize(QSize(35, 20))
         self.spent.setMaximum(self.character.stats['vitae'])
         self.spent.valueChanged.connect(self.update_vitae)
@@ -360,356 +351,6 @@ class Vitae(QWidget):
         current_num = self.character.stats['vitae'] - self.character.stats['vitae spent']
         self.current.change_text(str(current_num) + "/" + str(self.character.stats['vitae']))
 
-def save_xml(character, path):
-    pass
-    '''
-    Save vampire as xml
-    :param character: Character object
-    :param path: Path to save file
-    :return: None
-    '''
-    root = Element('root')
-
-    # notes
-    if character.notes != '':
-        item = Element('notes')
-        root.append(item)
-
-        content = Element('content')
-        item.append(content)
-        content.text = character.notes
-
-    # splat
-    item = Element('splat')
-    root.append(item)
-    item.text = character.splat
-
-    for stat in character.stats:
-        # skills
-        if stat in stats.SKILLS:
-            item = Element('skill')
-            root.append(item)
-
-            name = Element('name')
-            item.append(name)
-            name.text = stat
-
-            rating = Element('rating')
-            item.append(rating)
-            rating.text = str(character.stats[stat])
-
-            if stat in character.stats['skill specialties']:
-                # record specialties
-                tooltip = Element('tooltip')
-                item.append(tooltip)
-                tooltip.text = character.stats['skill specialties'][stat]
-
-        # stats with tooltips
-        elif stat in ('merits', 'disciplines'):
-            for content in character.stats[stat]:
-                item = Element(stat)
-                root.append(item)
-
-                name = Element('name')
-                item.append(name)
-                name.text = content
-
-                rating = Element('rating')
-                item.append(rating)
-                rating.text = str(character.stats[stat][content]['rating'])
-
-                if 'tooltip' in character.stats[stat][content]:
-                    tooltip = Element('tooltip')
-                    item.append(tooltip)
-                    tooltip.text = character.stats[stat][content]['tooltip']
-
-        elif stat in ('skill specialties'):
-            # skip these - added when associated merit/skill added
-            pass
-
-        # labels and tooltips
-        elif stat in ('conditions', 'aspirations', 'obsessions', 'active spells', 'attainments', 'magtool'):
-            if character.stats[stat] != {}:
-                item = Element(stat)
-                root.append(item)
-
-                for entry in character.stats[stat]:
-                    leaf = Element('entry')
-                    name = Element('name')
-                    leaf.append(name)
-                    name.text = entry
-
-                    if character.stats[stat][entry] != '':
-                        tooltip = Element('tooltip')
-                        leaf.append(tooltip)
-                        tooltip.text = character.stats[stat][entry]
-
-                    item.append(leaf)
-
-        # any other stat but health, praxes, rote, weapons or enchanted items
-        elif stat not in ('health', 'rotes', 'ench items', 'praxes', 'weapons'):
-            item = Element('other')
-            root.append(item)
-
-            name = Element('name')
-            item.append(name)
-            name.text = stat
-
-            rating = Element('rating')
-            item.append(rating)
-
-            # note, this can be strings or numbers
-            rating.text = str(character.stats[stat])
-
-        elif stat == 'weapons':
-            if character.stats['weapons'] != {}:
-                for weapon in character.stats['weapons']:
-                    item = Element('weapon')
-                    root.append(item)
-
-                    name = Element('name')
-                    item.append(name)
-                    name.text = weapon
-
-                    details = character.stats['weapons'][weapon]
-
-                    for detail in details:
-                        # loop over dict, skip blank entries
-                        if details[detail] != '':
-                            entry = Element(detail)
-                            item.append(entry)
-                            entry.text = str(details[detail])
-
-        elif stat == 'praxes':
-            if character.stats['praxes'] != {}:
-                for praxis in character.stats['praxes']:
-                    item = Element('praxis')
-                    root.append(item)
-
-                    name = Element('name')
-                    item.append(name)
-                    name.text = praxis.replace('’', "'")
-
-                    if character.stats['praxes'][praxis]['tooltip'] != '':
-                        tooltip = Element('tooltip')
-                        item.append(tooltip)
-                        tooltip.text = character.stats['praxes'][praxis]['tooltip']
-
-                    arcanum = Element('arcanum')
-                    item.append(arcanum)
-                    arcanum.text = character.stats['praxes'][praxis]['arcanum']
-
-
-        elif stat == 'rotes':
-            for rote in character.stats['rotes']:
-                item = Element('rote')
-                root.append(item)
-                content = character.stats['rotes'][rote]
-
-                name = Element('name')
-                item.append(name)
-                name.text = rote.replace('’', "'")
-
-                if content[0] != '':
-                    tooltip = Element('tooltip')
-                    item.append(tooltip)
-                    tooltip.text = content[0]
-
-                arcanum = Element('arcanum')
-                item.append(arcanum)
-                arcanum.text = content[1]
-
-                skill = Element('skill')
-                item.append(skill)
-                skill.text = content[2]
-
-        # health
-        elif stat == 'health':
-            health = character.stats['health']
-            item = Element('health')
-            root.append(item)
-
-            bashing = Element('bashing')
-            lethal = Element('lethal')
-            agg = Element('agg')
-
-            # max ignored since it is derived
-            bashing.text = str(health[1])
-            lethal.text = str(health[2])
-            agg.text = str(health[3])
-
-            item.append(bashing)
-            item.append(lethal)
-            item.append(agg)
-
-        elif stat == 'ench items':
-            for name in character.stats['ench items']:
-                item = Element('enchitem')
-                root.append(item)
-
-                content = character.stats['ench items'][name]
-                item_name = Element('name')
-                item_type = Element('item_type')
-                tooltip = Element('tooltip')
-                rating = Element('rating')
-                mana = Element('mana')
-                mana_spent = Element('mana_spent')
-
-                item_name.text = name
-                item_type.text = content[0]
-                tooltip.text = content[1]
-                rating.text = str(content[2])
-                mana.text = str(content[3])
-                mana_spent.text = str(content[4])
-
-                item.append(item_name)
-                item.append(item_type)
-                item.append(tooltip)
-                item.append(rating)
-                item.append(mana)
-                item.append(mana_spent)
-
-    # Personality
-    for message in character.goodMessages:
-        item = Element('goodmessage')
-        root.append(item)
-
-        mess = Element('message')
-        item.append(mess)
-        mess.text = message
-
-    for message in character.badMessages:
-        item = Element('badmessage')
-        root.append(item)
-
-        mess = Element('message')
-        item.append(mess)
-        mess.text = message
-
-    item = Element('badrate')
-    root.append(item)
-    item.text = str(character.badRate)
-
-    item = Element('goodrate')
-    root.append(item)
-    item.text = str(character.goodRate)
-
-    # write file
-    rough_string = etree.tostring(root, 'utf-8')
-    reparsed = minidom.parseString(rough_string)
-    text = reparsed.toprettyxml(indent="  ")
-
-    # used to remove ’ style apostrophes that cause crashes when reading the file
-    text = text.replace('’', "'")
-
-    f = open(path, 'w')
-    f.write(text)
-    f.close()
-
-def from_xml(dom):
-    pass
-    # CHANGE
-    '''
-    Create a stats dicts from XML
-    :param dom: Appropiate XML object
-    :return: Stats dict
-    '''
-
-    skills = dom.findall('skill')
-    merits = dom.findall('merit')
-    health = dom.find('health')
-    weapons = dom.findall('weapon')
-    disciplines = dom.findall('disciplines')
-    others = dom.findall('other')
-
-    input_stats = {}
-    input_stats['merits'] = {}
-    input_stats['skill specialties'] = {}
-    input_stats['health'] = [0, 0, 0, 0]
-    input_stats['disciplines'] = {}
-    input_stats['weapons'] = {}
-    specials = ['conditions', 'aspirations', 'banes']
-
-    for weapon in weapons:
-        name = weapon.find('name').text
-        damage = weapon.find('damage').text
-        if weapon.find('range') != None:
-            weapon_range = weapon.find('range').text
-        else:
-            weapon_range = ''
-        clip = weapon.find('clip').text
-        init = weapon.find('init').text
-        strength = weapon.find('str').text
-        size = weapon.find('size').text
-
-        input_stats['weapons'][name] = {'damage': int(damage),
-                                        'range': weapon_range,
-                                        'clip': int(clip),
-                                        'init': int(init),
-                                        'str': int(strength),
-                                        'size': int(size)}
-
-    for skill in skills:
-        name = skill.find('name').text
-        rating = skill.find('rating').text
-        input_stats[name] = int(rating)
-
-        if skill.find('tooltip') != None:
-            tooltip = skill.find('tooltip').text
-            input_stats['skill specialties'][name] = tooltip
-
-    for merit in merits:
-        name = merit.find('name').text
-        rating = merit.find('rating').text
-        input_stats['merits'][name]['rating'] = int(rating)
-
-        if merit.find('tooltip') != None:
-            tooltip = merit.find('tooltip').text
-            input_stats['merits'][name]['tooltip'] = tooltip
-
-    for discipline in disciplines:
-        name = discipline.find('name').text
-        rating = discipline.find('rating').text
-        input_stats['disciplines'][name]['rating'] = int(rating)
-
-        if discipline.find('tooltip') != None:
-            tooltip = discipline.find('tooltip').text
-            input_stats['disciplines'][name]['tooltip'] = tooltip
-
-    dam_type = 1
-    for damage in ['bashing', 'lethal', 'agg']:
-        amount = int(health.find(damage).text)
-        input_stats['health'][dam_type] = amount
-        dam_type += 1
-
-    for entry in specials:
-        input_stats[entry] = {}
-        leaf = dom.find(entry)
-        if leaf != None:
-            items = leaf.findall('entry')
-            for item in items:
-                name = item.find('name').text
-                if item.find('tooltip') != None:
-                    tooltip = item.find('tooltip').text
-                else:
-                    tooltip = ''
-
-                input_stats[entry][name] = tooltip
-
-    for other in others:
-        name = other.find('name').text
-        rating = other.find('rating').text
-        if rating == None:
-            # happens only for blank string inputs
-            input_stats[name] = ''
-        elif rating.isdigit() and name != 'user id':
-            # numbers, but not user id
-            input_stats[name] = int(rating)
-        else:
-            # string input
-            input_stats[name] = rating
-
-    return input_stats
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

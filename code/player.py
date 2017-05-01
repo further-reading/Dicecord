@@ -2,8 +2,10 @@
 #    Copyright (C) 2017  Roy Healy
 
 import random
+import mageUI, vampireUI, stats
+from xml.dom import minidom
+from xml.etree.ElementTree import Element
 from xml.etree import ElementTree as etree
-import mageUI, vampireUI
 
 class Character:
     def __init__(self,
@@ -68,8 +70,6 @@ class Character:
             mageUI.update_mana(self)
         elif self.splat == "vampire":
             vampireUI.update_vitae(self)
-            pass
-            # mageUI.update_vitae(self)
 
         # Willpower = Resolve + Composure
         self.stats['willpower'] = self.stats['resolve'] + self.stats['composure']
@@ -129,8 +129,157 @@ class Character:
         Saves a copy of the character sheet as an XML file.
         '''
 
+        root = Element('root')
+
+        # notes
+        if self.notes != '':
+            item = Element('notes')
+            root.append(item)
+
+            content = Element('content')
+            item.append(content)
+            content.text = self.notes
+
+        # splat
+        item = Element('splat')
+        root.append(item)
+        item.text = self.splat
+
         if self.splat == 'mage':
-            mageUI.save_xml(self, path)
+            # rote skills
+            for skill in self.stats['rote skills']:
+                item = Element('rote_skill')
+                root.append(item)
+                item.text = skill
+
+            
+        for stat in self.stats:
+            # skills
+            if stat in stats.SKILLS:
+                item = Element('skill')
+                root.append(item)
+
+                name = Element('name')
+                item.append(name)
+                name.text = stat
+
+                rating = Element('rating')
+                item.append(rating)
+                rating.text = str(self.stats[stat])
+
+                if stat in self.stats['skill specialties']:
+                    # record specialties
+                    tooltip = Element('tooltip')
+                    item.append(tooltip)
+                    tooltip.text = self.stats['skill specialties'][stat]
+
+            elif stat in ('skill specialties'):
+                # skip these - added when associated skill added
+                pass
+
+            # stat contains a dict
+            elif type(self.stats[stat]) is dict:
+                if self.stats[stat] != {}:
+                    item = Element('dict')
+                    root.append(item)
+
+                    statname = Element('statname')
+                    item.append(statname)
+                    statname.text = stat
+
+                    for entry in self.stats[stat]:
+                        details = self.stats[stat][entry]
+                        # can be a dict itself, or a value
+                        if type(details) is dict:
+                            name = Element('name')
+                            item.append(name)
+                            name.text = str(entry)
+
+                            for detail in details:
+                                # loop over dict, skip blank entries
+                                if details[detail] != '':
+                                    attribute_name = detail.replace(' ', '_')
+                                    content = Element(attribute_name)
+                                    item.append(content)
+                                    content.text = str(details[detail])
+                        else:
+                            name = Element('name')
+                            item.append(name)
+                            name.text = str(entry)
+
+                            tooltip = Element('tooltip')
+                            item.append(tooltip)
+                            tooltip.text = str(details)
+
+            # health
+            elif stat == 'health':
+                health = self.stats['health']
+                item = Element('health')
+                root.append(item)
+
+                bashing = Element('bashing')
+                lethal = Element('lethal')
+                agg = Element('agg')
+
+                # max ignored since it is derived
+                bashing.text = str(health[1])
+                lethal.text = str(health[2])
+                agg.text = str(health[3])
+
+                item.append(bashing)
+                item.append(lethal)
+                item.append(agg)
+
+            # stat is a string or a number
+            elif type(stat) is int or type(stat) is str:
+                if self.stats[stat] != '':
+                    item = Element('other')
+                    root.append(item)
+
+                    name = Element('name')
+                    item.append(name)
+                    name.text = stat
+
+                    rating = Element('rating')
+                    item.append(rating)
+                    rating.text = str(self.stats[stat])
+
+        # Personality
+        for message in self.goodMessages:
+            item = Element('goodmessage')
+            root.append(item)
+
+            mess = Element('message')
+            item.append(mess)
+            mess.text = message
+
+        for message in self.badMessages:
+            item = Element('badmessage')
+            root.append(item)
+
+            mess = Element('message')
+            item.append(mess)
+            mess.text = message
+
+        item = Element('badrate')
+        root.append(item)
+        item.text = str(self.badRate)
+
+        item = Element('goodrate')
+        root.append(item)
+        item.text = str(self.goodRate)
+
+        # write file
+        rough_string = etree.tostring(root, 'utf-8')
+        reparsed = minidom.parseString(rough_string)
+        text = reparsed.toprettyxml(indent="  ")
+
+        # used to remove ’ style apostrophes that cause crashes when reading the file
+        text = text.replace('’', "'")
+
+        f = open(path, 'w')
+        f.write(text)
+        f.close()
 
     @classmethod
     def from_xml(cls, path):
@@ -145,59 +294,89 @@ class Character:
         goodRate = dom.find('badrate')
         badRate = dom.find('goodrate')
 
-        if not splat:
-            # pre 1.02 file
-            input_splat = 'mage'
-        else:
-            input_splat = splat.text
+        skills = dom.findall('skill')
+        dicts = dom.findall('dict')
+        health = dom.find('health')
+        others = dom.findall('other')
+
+        ### backwards compatibility
+        if not dicts:
+            # pre 1.1 mage only
+            return mageUI.from_xml(cls, dom)
+
+        ### backwards compatibility
+
+        input_splat = splat.text
+        char = cls(splat = input_splat)
+            
+        for element in dicts:
+            stat = element.find('statname').text
+            char.stats[stat] = {}
+
+            entries = list(element)
+            for entry in entries:
+                if entry.tag == 'name':
+                    # will start a new dict each time it sees the tag 'name'
+                    name = entry.text
+                    char.stats[stat][name] = {}
+                elif entry.tag != 'statname':
+                    entry_name = entry.tag.replace('_', ' ')
+                    char.stats[stat][name][entry_name] = entry.text
+
+        for skill in skills:
+            name = skill.find('name').text
+            rating = skill.find('rating').text
+            char.stats[name] = int(rating)
+
+            if skill.find('tooltip') != None:
+                tooltip = skill.find('tooltip').text
+                char.stats['skill specialties'][name] = tooltip
+
+        dam_type = 1
+        for damage in ['bashing', 'lethal', 'agg']:
+            amount = int(health.find(damage).text)
+            char.stats['health'][dam_type] = amount
+            dam_type += 1
+
+        for other in others:
+            name = other.find('name').text
+            rating = other.find('rating').text
+            if rating == None:
+                # happens only for blank string inputs
+                char.stats[name] = ''
+            elif rating.isdigit() and name != 'user id':
+                # numbers, but not user id
+                char.stats[name] = int(rating)
+            else:
+                # string input
+                char.stats[name] = rating
 
         if input_splat == 'mage':
-            input_stats = mageUI.from_xml(dom)
+            # code for mage rote skills
+            char.stats['rote skills'] = set()
+            roteskills = dom.findall('rote_skill')
+            for skill in roteskills:
+                char.stats['rote skills'].add(skill.text)
+            
+        char.goodMessages = []
+        char.badMessages = []
 
+        if notes != None:
+            char.notes = notes.find('content').text
 
-        input_goodMessages = []
-        input_badMessages = []
+        for message in goodMessages:
+            mess = message.find('message').text
+            char.goodMessages.append(mess)
 
-        if notes == None:
-            input_notes = ''
-        else:
-            input_notes = notes.find('content').text
+        for message in badMessages:
+            mess = message.find('message').text
+            char.badMessages.append(mess)
 
-        if goodMessages:
-            for message in goodMessages:
-                mess = message.find('message').text
-                input_goodMessages.append(mess)
-        else:
-            # this happens is xml is v1.00
-            input_goodMessages = mageUI.goodMessages
+        char.goodRate = int(goodRate.text)
 
-        if badMessages:
-            for message in badMessages:
-                mess = message.find('message').text
-                input_badMessages.append(mess)
-        else:
-            # this happens is xml is v1.00
-            input_badMessages = mageUI.badMessages
+        char.badRate = int(badRate.text)
 
-        if goodRate != None:
-            input_goodRate = int(goodRate.text)
-        else:
-            # this happens is xml is v1.00
-            input_goodRate = 100
-
-        if badRate != None:
-            input_badRate = int(badRate.text)
-        else:
-            # this happens is xml is v1.00
-            input_badRate = 50
-
-        return cls(stats = input_stats,
-                   goodMessages = input_goodMessages,
-                   badMessages = input_badMessages,
-                   goodrate = input_goodRate,
-                   badrate = input_badRate,
-                   notes = input_notes,
-                   splat = input_splat)
+        return char
 
 
     def roll_set(self, dice, rote=False, again=10, quiet=False):

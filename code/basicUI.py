@@ -46,7 +46,11 @@ class Label_Entry_Combo(QWidget):
         label.setMinimumWidth(50)
         self.content = QLineEdit()
         self.content.setMaximumWidth(100)
-        self.content.insert(self.character.stats[self.name])
+        try:
+            self.content.insert(self.character.stats[self.name])
+        except KeyError:
+            # happens when no content when read
+            self.character.stats[self.name] = ''
         
         box = QHBoxLayout()
         self.setLayout(box)
@@ -206,6 +210,7 @@ class StatWithTooltip(QWidget):
         self.character = character
         self.name = name
         self.setStyleSheet("QLabel { font: 13pt}")
+        self.new_button = None
         self.initUI()
 
     def initUI(self):
@@ -769,7 +774,7 @@ class Stat(QWidget):
         self.character = character
         self.type = type
         if self.type == "tooltip":
-            self.current = character.stats[group][name]['rating']
+            self.current = int(character.stats[group][name]['rating']) # may be str when read
             self.tooltip = character.stats[group][name]['tooltip']
         else:
             self.current = character.stats[name]
@@ -1127,7 +1132,7 @@ class TextBoxEntry(QWidget):
         
 
     def edit_toggle(self):
-        self.box.setReadOnly(self.character.edit_mode)
+        self.box.setReadOnly(not self.character.edit_mode)
 
         if not self.character.edit_mode:
             # save changes
@@ -1135,6 +1140,10 @@ class TextBoxEntry(QWidget):
 
 
 class TextEditResizing(QTextEdit):
+    '''
+    Custom Text Edit Widget
+    Starts small and resizes when new content added
+    '''
     def __init__(self, initText):
         super().__init__()  
         self.document().contentsChanged.connect(self.sizeChange)
@@ -1181,7 +1190,14 @@ class Hover_Label_Col(QWidget):
         for stat in self.character.stats[self.stat_name]:
             button = QPushButton(stat.title())
             button.setCursor(QCursor(Qt.WhatsThisCursor))
-            button.setToolTip(self.character.stats[self.stat_name][stat])
+            
+            item = self.character.stats[self.stat_name][stat]
+            if type(item) is dict:
+                tooltip = item['tooltip']
+            else:
+                tooltip = item
+                
+            button.setToolTip(tooltip)
             button.setStyleSheet("QPushButton {border:none; font: 10pt}")
 
             self.content[self.row] = button
@@ -1241,12 +1257,12 @@ class Hover_Label_Col(QWidget):
             # Only adds new if entry by that name does not exist yet
             # add entry on character object
             new = label.lower()
-            self.character.stats[self.stat_name][new] = tooltip
+            self.character.stats[self.stat_name][new] = {'tooltip': tooltip}
 
             # creates new button
             button = QPushButton(new.title())
             button.setCursor(QCursor(Qt.WhatsThisCursor))
-            button.setToolTip(self.character.stats[self.stat_name][new])
+            button.setToolTip(tooltip)
             button.setStyleSheet("QPushButton {border:none; font: 10pt}")
 
             self.content[self.row] = button
@@ -1277,7 +1293,7 @@ class Hover_Label_Col(QWidget):
             
         else:
             # Update tooltip of existing entry
-            self.character.stats[self.stat_name][current.text()] = tooltip
+            self.character.stats[self.stat_name][current.text()]['tooltip'] = tooltip
             current.setToolTip(tooltip)
 
     def edit_toggle(self):
@@ -1350,7 +1366,7 @@ class Label_Tooltip_Dialog (QDialog):
         Sends an accept signal but adds a delete flag to output
         '''
         
-        self.title_entry.insert("####DELETE####")
+        self.title_entry.insert("a####DELETE####")
         self.accept()
 
     def get_input(wintitle, title = '', tooltip = '', edit = False):
@@ -1651,12 +1667,15 @@ class Weapons_Dialog(QDialog):
         super().__init__()
         self.setWindowTitle(wintitle)
         self.name = name
-        self.damage = damage
         self.range = weapon_range
-        self.clip = clip
-        self.init = init
-        self.str = strength
-        self.size = size
+
+        # may be str when read
+        self.damage = int(damage)
+        self.clip = int(clip)
+        self.init = int(init)
+        self.str = int(strength)
+        self.size = int(size)
+
         self.edit = edit
 
         self.initUI()
@@ -1745,7 +1764,7 @@ class Weapons_Dialog(QDialog):
         Sends an accept signal but adds a delete flag to output
         '''
 
-        self.name_entry.insert("####delete####")
+        self.name_entry.insert("a####delete####")
         self.accept()
 
     def get_weapon(wintitle, name='', damage=0, weapon_range='', clip=0, init=0, strength=0, size=1, edit=False):
@@ -1960,7 +1979,7 @@ class Equipment(QWidget):
             self.grid.addWidget(self.new_button, self.row, 0)
 
 
-        elif "####delete####" in name:
+        elif "a####delete####" in name:
             # delete chosen
             # remove stat widget
             for widget in self.items[index]:
@@ -1998,10 +2017,13 @@ class Equipment_Dialog(QDialog):
         self.setWindowTitle(wintitle)
         self.name = name
         self.tooltip = tooltip
-        self.durability = durability
-        self.structure = structure
-        self.size = size
-        self.cost = cost
+
+        # these may be str when read
+        self.durability = int(durability)
+        self.structure = int(structure)
+        self.size = int(size)
+        self.cost = int(cost)
+
         self.edit = edit
 
         self.initUI()

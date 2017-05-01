@@ -70,6 +70,7 @@ class InventorySheet(QWidget):
         self.magtool.edit_toggle()
         self.rotes.edit_toggle()
         self.enchitems.edit_toggle()
+        self.nimbus.edit_toggle()
 
 
 class Praxes(QWidget):
@@ -406,7 +407,7 @@ class Ench_Items(QWidget):
         self.edit_buttons = QButtonGroup()
         self.edit_buttons.buttonClicked[int].connect(self.edit_entry)
 
-        # self.character.stats['ench item'][name] = [type, tooltip, rating, mana]
+        # self.character.stats['ench item'][name] = {'type':, 'tooltip':, 'rating':, 'mana':}
         # imbued mana = 1 + optional extra
         # artifact mana = rating*2
         # imbued pool = rating + player Gnosis
@@ -415,8 +416,8 @@ class Ench_Items(QWidget):
         for name in self.character.stats['ench items']:
             self.items[self.row] = []
             item_details = self.character.stats['ench items'][name]
-            item_type = item_details[0]
-            tooltip = item_details[1]
+            item_type = item_details['type']
+            tooltip = item_details['tooltip']
 
             # item type
             item_label = QLabel(item_type.title())
@@ -463,8 +464,8 @@ class Ench_Items(QWidget):
             self.update_items()
 
     def calculate_pool(self, item_details):
-        item_type = item_details[0]
-        rating = item_details[2]
+        item_type = item_details['type']
+        rating = int(item_details['rating']) #imported as str
 
         if item_type == "imbued":
             # imbued pool = rating + player Gnosis
@@ -501,10 +502,10 @@ class Ench_Items(QWidget):
             current_name = current[1].text().lower()
             current_details = self.character.stats['ench items'][current_name]
 
-            current_type = current_details[0]
-            current_tooltip = current_details[1]
-            current_rating = current_details[2]
-            current_mana = current_details[3]
+            current_type = current_details['type']
+            current_tooltip = current_details['tooltip']
+            current_rating = int(current_details['rating']) # imported as str
+            current_mana = int(current_details['mana']) # imported as str
 
             item_type, name, tooltip, rating, mana, ok = EnchItem_Dialog.get_input("Change Item", current_type,
                                                                                    current_name, current_tooltip,
@@ -529,7 +530,11 @@ class Ench_Items(QWidget):
         elif not current_name:
             # Only adds new if entry by that name does not exist yet
             # add entry on character object
-            self.character.stats['ench items'][name] = [item_type, tooltip, rating, mana, 0]
+            self.character.stats['ench items'][name] = {'type': item_type,
+                                                        'tooltip': tooltip,
+                                                        'rating': rating,
+                                                        'mana': mana,
+                                                        'mana spent':0}
 
             # create entry
             self.items[self.row] = []
@@ -586,7 +591,11 @@ class Ench_Items(QWidget):
 
         else:
             # Update character object
-            self.character.stats["ench items"][name] = [item_type, tooltip, rating, mana, 0]
+            self.character.stats['ench items'][name] = {'type': item_type,
+                                                        'tooltip': tooltip,
+                                                        'rating': rating,
+                                                        'mana': mana,
+                                                        'mana spent':0}
 
             # Update type
             self.items[index][0].setText(item_type.title())
@@ -722,7 +731,7 @@ class EnchItem_Dialog(QDialog):
         Sends an accept signal but adds a delete flag to output
         '''
 
-        self.name_entry.insert("####delete####")
+        self.name_entry.insert("a####delete####")
         self.accept()
 
     def get_input(wintitle, item_type='artifact', name='', tooltip='', rating=0, mana=0, edit=False):
@@ -783,9 +792,9 @@ class Rotes(QWidget):
         for rote in self.character.stats['rotes']:
             self.rotes[self.row] = []
             rote_details = self.character.stats['rotes'][rote]
-            tooltip = rote_details[0]
-            arcanum = rote_details[1]
-            skill = rote_details[2]
+            tooltip = rote_details['tooltip']
+            arcanum = rote_details['arcanum']
+            skill = rote_details['skill']
 
             # spellname
             button = QPushButton(rote.title())
@@ -844,8 +853,8 @@ class Rotes(QWidget):
 
     def calculate_pool(self, rote_name):
         rote = self.character.stats['rotes'][rote_name]
-        arcanum = rote[1]
-        skill = rote[2]
+        arcanum = rote['arcanum']
+        skill = rote['skill']
 
         pool = self.character.stats[skill] + self.character.stats['gnosis'] + self.character.stats[arcanum]
         if skill in self.character.stats['rote skills']:
@@ -857,8 +866,8 @@ class Rotes(QWidget):
         for index in self.rotes:
             current = self.rotes[index]
             rote = current[0].text().lower()
-            arcanum = self.character.stats['rotes'][rote][1]
-            skill = self.character.stats['rotes'][rote][2]
+            arcanum = self.character.stats['rotes'][rote]['arcanum']
+            skill = self.character.stats['rotes'][rote]['skill']
 
             current[1].setText(arcanum.title() + " (" + str(self.character.stats[arcanum]) + ")")
             current[2].setText(skill.title() + " (" + str(self.character.stats[skill]) + ")")
@@ -890,8 +899,8 @@ class Rotes(QWidget):
             current_tooltip = current[0].toolTip()
 
             # The labels are edited, so skill and arcanum taken from character's rote entry
-            current_arcanum = self.character.stats['rotes'][current_title.lower()][1]
-            current_skill = self.character.stats['rotes'][current_title.lower()][2]
+            current_arcanum = self.character.stats['rotes'][current_title.lower()]['arcanum']
+            current_skill = self.character.stats['rotes'][current_title.lower()]['skill']
 
             rote, tooltip, skill, arcanum, ok = Rote_Dialog.get_input("Change Rote", title=current_title,
                                                                       tooltip=current_tooltip, skill=current_skill,
@@ -915,7 +924,9 @@ class Rotes(QWidget):
         elif not current_title:
             # Only adds new if entry by that name does not exist yet
             # add entry on character object
-            self.character.stats["rotes"][rote] = [tooltip, arcanum, skill]
+            self.character.stats["rotes"][rote] = {'tooltip': tooltip,
+                                                   'arcanum': arcanum,
+                                                   'skill': skill}
 
             # create entry
             self.rotes[self.row] = []
@@ -990,7 +1001,9 @@ class Rotes(QWidget):
 
         else:
             # Update character object
-            self.character.stats["rotes"][rote] = [tooltip, arcanum, skill]
+            self.character.stats["rotes"][rote] = {'tooltip': tooltip,
+                                                   'arcanum': arcanum,
+                                                   'skill': skill}
 
             # Update existing entry
             current[0].setToolTip(tooltip)

@@ -1,7 +1,7 @@
 # Dicecord: Dice Roller and Character Sheet Viewer for use in conjucntion with Discord Chat Channels
 # Copyright (C) 2017  Roy Healy
 # 
-# version 1.03
+# version 1.1
 
 
 from PyQt5.QtWidgets import *
@@ -12,11 +12,11 @@ import urllib.error
 import urllib.request
 from player import Character
 import stats
-import mageUI
-import mageInventory
+import mageUI, mageInventory
+import vampireUI, vampireInventory
 
 
-VERSION = "1.03"
+VERSION = "1.1"
 
 
 class Intro(QWidget):
@@ -95,7 +95,7 @@ class New_Character_Dialog(QDialog):
     '''
     def __init__(self):
         super().__init__()
-        self.splat = "mage"
+        self.splat = 'mage'
         self.initUI()
         self.setMaximumSize(20,20)
 
@@ -117,6 +117,12 @@ class New_Character_Dialog(QDialog):
         mage.setChecked(True)
         mage.toggled.connect(lambda: self.changesplat("mage"))
         splatbox.addWidget(mage)
+
+        vamp = QRadioButton()
+        vamp.setText("Vampire")
+        vamp.toggled.connect(lambda: self.changesplat("vampire"))
+        splatbox.addWidget(vamp)
+
         self.grid.addLayout(splatbox, 1, 0, 1, 3)
 
         # dark era skill settings
@@ -446,7 +452,13 @@ class Main(QMainWindow):
             self.setCentralWidget(self.sheet)
 
     def save(self, save_as = False):
-        name = self.character.stats['shadow name']
+
+        if self.character.splat == 'mage':
+            name = self.character.stats['shadow name']
+        else:
+            name = self.character.stats['name']
+
+            
         if name == '':
             name = 'character'
 
@@ -540,6 +552,9 @@ class Sheet(QTabWidget):
         if self.character.splat == 'mage':
             self.statsheet = mageUI.StatsSheet(character)
             self.inventory = mageInventory.InventorySheet(character, self.statsheet)
+        elif self.character.splat == 'vampire':
+            self.statsheet = vampireUI.StatsSheet(character)
+            self.inventory = vampireInventory.InventorySheet(character)
         self.notes = QTextEdit()
         font = QFont()
         font.setPointSize(12)

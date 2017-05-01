@@ -129,7 +129,7 @@ class StatsSheet(QWidget):
         self.arcana = Arcana(self.character)
 
         # merits
-        self.merits = basicUI.Merits(self.character)
+        self.merits = basicUI.StatWithTooltip(self.character, 'merits')
 
         # mana
         self.mana = Mana(self.character)
@@ -281,13 +281,13 @@ class Mana(QWidget):
 
         # base spent
         self.spent = QSpinBox()
-        self.spent.setValue(self.character.stats['mana spent'])
+        self.spent.setValue(int(self.character.stats['mana spent'])) # imported as str
         self.spent.setMaximumSize(QSize(35, 20))
-        self.spent.setMaximum(self.character.stats['mana'])
+        self.spent.setMaximum(int(self.character.stats['mana'])) # imported as str
         self.spent.valueChanged.connect(self.update_mana)
 
         # base current
-        current_num = self.character.stats['mana'] - self.character.stats['mana spent']
+        current_num = int(self.character.stats['mana']) - int(self.character.stats['mana spent']) # imported as str
         self.current = basicUI.Num_with_Line(str(current_num) + "/" + str(self.character.stats['mana']))
 
         self.grid.addWidget(self.base_label, 2, 0)
@@ -316,9 +316,9 @@ class Mana(QWidget):
         # add back in
         for item in self.character.stats['ench items']:
             self.ench_items[self.row] = [item]
-            total_mana = self.character.stats['ench items'][item][3]
-            spent_mana = self.character.stats['ench items'][item][4]
-            item_type = self.character.stats['ench items'][item][0]
+            total_mana = int(self.character.stats['ench items'][item]['mana'])
+            spent_mana = int(self.character.stats['ench items'][item]['mana spent'])
+            item_type = self.character.stats['ench items'][item]['type']
 
             # label
             label = QLabel(item.title() + "(" + item_type.title() + ") :")
@@ -359,268 +359,25 @@ class Mana(QWidget):
             current_widget = self.ench_items[item][3]
 
             # update character object
-            self.character.stats['ench items'][name][4] = spent_widget.value()
+            self.character.stats['ench items'][name]['mana spent'] = spent_widget.value()
 
             # update current display
-            current_num = self.character.stats['ench items'][name][3] - spent_widget.value()
-            current_widget.change_text(str(current_num) + "/" + str(self.character.stats['ench items'][name][3]))
-
-def save_xml(character, path):
-    '''
-    Save mage as xml
-    :param character: Character object
-    :param path: Path to save file
-    :return: None
-    '''
-    root = Element('root')
-
-    # notes
-    if character.notes != '':
-        item = Element('notes')
-        root.append(item)
-
-        content = Element('content')
-        item.append(content)
-        content.text = character.notes
-
-    # splat
-    item = Element('splat')
-    root.append(item)
-    item.text = character.splat
-
-    for stat in character.stats:
-        # skills
-        if stat in stats.SKILLS:
-            item = Element('skill')
-            root.append(item)
-
-            name = Element('name')
-            item.append(name)
-            name.text = stat
-
-            rating = Element('rating')
-            item.append(rating)
-            rating.text = str(character.stats[stat])
-
-            if stat in character.stats['skill specialties']:
-                # record specialties
-                tooltip = Element('tooltip')
-                item.append(tooltip)
-                tooltip.text = character.stats['skill specialties'][stat]
-
-            if stat in character.stats['rote skills']:
-                rote = Element('rote')
-                item.append(rote)
-                rote.text = "True"
-
-        # merits
-        elif stat == 'merits':
-            for merit in character.stats['merits']:
-                item = Element('merit')
-                root.append(item)
-
-                name = Element('name')
-                item.append(name)
-                name.text = merit
-
-                rating = Element('rating')
-                item.append(rating)
-                rating.text = str(character.stats['merits'][merit])
-
-                if merit in character.stats['merit details']:
-                    tooltip = Element('tooltip')
-                    item.append(tooltip)
-                    tooltip.text = character.stats['merit details'][merit]
-
-        elif stat in ('skill specialties', 'merit details', 'rote skills'):
-            # skip these - added when associated merit/skill added
-            pass
-
-        # labels and tooltips
-        elif stat in ('conditions', 'aspirations', 'obsessions', 'active spells', 'attainments', 'magtool'):
-            if character.stats[stat] != {}:
-                item = Element(stat)
-                root.append(item)
-
-                for entry in character.stats[stat]:
-                    leaf = Element('entry')
-                    name = Element('name')
-                    leaf.append(name)
-                    name.text = entry
-
-                    if character.stats[stat][entry] != '':
-                        tooltip = Element('tooltip')
-                        leaf.append(tooltip)
-                        tooltip.text = character.stats[stat][entry]
-
-                    item.append(leaf)
-
-        # any other stat but health, praxes, rote, weapons or enchanted items
-        elif stat not in ('health', 'rotes', 'ench items', 'praxes', 'weapons'):
-            item = Element('other')
-            root.append(item)
-
-            name = Element('name')
-            item.append(name)
-            name.text = stat
-
-            rating = Element('rating')
-            item.append(rating)
-
-            # note, this can be strings or numbers
-            rating.text = str(character.stats[stat])
-
-        elif stat == 'weapons':
-            if character.stats['weapons'] != {}:
-                for weapon in character.stats['weapons']:
-                    item = Element('weapon')
-                    root.append(item)
-
-                    name = Element('name')
-                    item.append(name)
-                    name.text = weapon
-
-                    details = character.stats['weapons'][weapon]
-
-                    for detail in details:
-                        # loop over dict, skip blank entries
-                        if details[detail] != '':
-                            entry = Element(detail)
-                            item.append(entry)
-                            entry.text = str(details[detail])
-
-        elif stat == 'praxes':
-            if character.stats['praxes'] != {}:
-                for praxis in character.stats['praxes']:
-                    item = Element('praxis')
-                    root.append(item)
-
-                    name = Element('name')
-                    item.append(name)
-                    name.text = praxis.replace('’', "'")
-
-                    if character.stats['praxes'][praxis]['tooltip'] != '':
-                        tooltip = Element('tooltip')
-                        item.append(tooltip)
-                        tooltip.text = character.stats['praxes'][praxis]['tooltip']
-
-                    arcanum = Element('arcanum')
-                    item.append(arcanum)
-                    arcanum.text = character.stats['praxes'][praxis]['arcanum']
+            current_num = int(self.character.stats['ench items'][name]['mana']) - spent_widget.value() # imported as str
+            current_widget.change_text(str(current_num) + "/" + str(self.character.stats['ench items'][name]['mana']))
 
 
-        elif stat == 'rotes':
-            for rote in character.stats['rotes']:
-                item = Element('rote')
-                root.append(item)
-                content = character.stats['rotes'][rote]
-
-                name = Element('name')
-                item.append(name)
-                name.text = rote.replace('’', "'")
-
-                if content[0] != '':
-                    tooltip = Element('tooltip')
-                    item.append(tooltip)
-                    tooltip.text = content[0]
-
-                arcanum = Element('arcanum')
-                item.append(arcanum)
-                arcanum.text = content[1]
-
-                skill = Element('skill')
-                item.append(skill)
-                skill.text = content[2]
-
-        # health
-        elif stat == 'health':
-            health = character.stats['health']
-            item = Element('health')
-            root.append(item)
-
-            bashing = Element('bashing')
-            lethal = Element('lethal')
-            agg = Element('agg')
-
-            # max ignored since it is derived
-            bashing.text = str(health[1])
-            lethal.text = str(health[2])
-            agg.text = str(health[3])
-
-            item.append(bashing)
-            item.append(lethal)
-            item.append(agg)
-
-        elif stat == 'ench items':
-            for name in character.stats['ench items']:
-                item = Element('enchitem')
-                root.append(item)
-
-                content = character.stats['ench items'][name]
-                item_name = Element('name')
-                item_type = Element('item_type')
-                tooltip = Element('tooltip')
-                rating = Element('rating')
-                mana = Element('mana')
-                mana_spent = Element('mana_spent')
-
-                item_name.text = name
-                item_type.text = content[0]
-                tooltip.text = content[1]
-                rating.text = str(content[2])
-                mana.text = str(content[3])
-                mana_spent.text = str(content[4])
-
-                item.append(item_name)
-                item.append(item_type)
-                item.append(tooltip)
-                item.append(rating)
-                item.append(mana)
-                item.append(mana_spent)
-
-    # Personality
-    for message in character.goodMessages:
-        item = Element('goodmessage')
-        root.append(item)
-
-        mess = Element('message')
-        item.append(mess)
-        mess.text = message
-
-    for message in character.badMessages:
-        item = Element('badmessage')
-        root.append(item)
-
-        mess = Element('message')
-        item.append(mess)
-        mess.text = message
-
-    item = Element('badrate')
-    root.append(item)
-    item.text = str(character.badRate)
-
-    item = Element('goodrate')
-    root.append(item)
-    item.text = str(character.goodRate)
-
-    # write file
-    rough_string = etree.tostring(root, 'utf-8')
-    reparsed = minidom.parseString(rough_string)
-    text = reparsed.toprettyxml(indent="  ")
-
-    # used to remove ’ style apostrophes that cause crashes when reading the file
-    text = text.replace('’', "'")
-
-    f = open(path, 'w')
-    f.write(text)
-    f.close()
-
-def from_xml(dom):
+def from_xml(cls, dom):
     '''
     Create a stats dicts from XML
     :param dom: Appropiate XML object
     :return: Stats dict
     '''
+
+    notes = dom.find('notes')
+    goodMessages = dom.findall('goodmessage')
+    badMessages = dom.findall('badmessage')
+    goodRate = dom.find('badrate')
+    badRate = dom.find('goodrate')
 
     skills = dom.findall('skill')
     merits = dom.findall('merit')
@@ -634,7 +391,6 @@ def from_xml(dom):
     input_stats = {}
     input_stats['merits'] = {}
     input_stats['skill specialties'] = {}
-    input_stats['merit details'] = {}
     input_stats['rote skills'] = set([])
     input_stats['rotes'] = {}
     input_stats['health'] = [0, 0, 0, 0]
@@ -656,7 +412,11 @@ def from_xml(dom):
         mana = item.find('mana').text
         mana_spent = item.find('mana_spent').text
 
-        input_stats['ench items'][name] = [item_type, tooltip, int(rating), int(mana), int(mana_spent)]
+        input_stats['ench items'][name] = {'type': item_type,
+                                           'tooltip': tooltip,
+                                           'rating': int(rating),
+                                           'mana': int(mana),
+                                           'mana spent': int(mana_spent)}
 
     for weapon in weapons:
         name = weapon.find('name').text
@@ -692,11 +452,11 @@ def from_xml(dom):
     for merit in merits:
         name = merit.find('name').text
         rating = merit.find('rating').text
-        input_stats['merits'][name] = int(rating)
+        input_stats['merits'][name] = {'rating':int(rating), 'tooltip':''}
 
         if merit.find('tooltip') != None:
             tooltip = merit.find('tooltip').text
-            input_stats['merit details'][name] = tooltip
+            input_stats['merits'][name]['tooltip'] = tooltip
 
     dam_type = 1
     for damage in ['bashing', 'lethal', 'agg']:
@@ -739,7 +499,9 @@ def from_xml(dom):
             # happens when tooltip is blank
             tooltip = ''
 
-        input_stats['rotes'][name] = [tooltip, arcanum, skill]
+        input_stats['rotes'][name] = {'tooltip': tooltip,
+                                      'arcanum': arcanum,
+                                      'skill': skill}
 
     for other in others:
         name = other.find('name').text
@@ -754,4 +516,46 @@ def from_xml(dom):
             # string input
             input_stats[name] = rating
 
-    return input_stats
+    input_goodMessages = []
+    input_badMessages = []
+
+    if notes == None:
+        input_notes = ''
+    else:
+        input_notes = notes.find('content').text
+
+    if goodMessages:
+        for message in goodMessages:
+            mess = message.find('message').text
+            input_goodMessages.append(mess)
+    else:
+        # this happens is xml is v1.00
+        input_goodMessages = mageUI.goodMessages
+
+    if badMessages:
+        for message in badMessages:
+            mess = message.find('message').text
+            input_badMessages.append(mess)
+    else:
+        # this happens is xml is v1.00
+        input_badMessages = mageUI.badMessages
+
+    if goodRate != None:
+        input_goodRate = int(goodRate.text)
+    else:
+        # this happens is xml is v1.00
+        input_goodRate = 100
+
+    if badRate != None:
+        input_badRate = int(badRate.text)
+    else:
+        # this happens is xml is v1.00
+        input_badRate = 50
+
+    return cls(stats = input_stats,
+               goodMessages = input_goodMessages,
+               badMessages = input_badMessages,
+               goodrate = input_goodRate,
+               badrate = input_badRate,
+               notes = input_notes,
+               splat = 'mage')

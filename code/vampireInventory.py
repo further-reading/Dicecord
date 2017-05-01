@@ -1,4 +1,4 @@
-# Chronicles of Darkness Mage Inventory Sheet UI created for use in conjunction with Dicecord.
+# Chronicles of Darkness Vampire Inventory Sheet UI created for use in conjunction with Dicecord.
 #   Copyright (C) 2017  Roy Healy
 
 import sip
@@ -23,8 +23,6 @@ class InventorySheet(QWidget):
         self.initUI()
 
     def initUI(self):
-        self.toggle = QPushButton('Toggle')
-        self.toggle.clicked.connect(self.edit_toggle)
         # Other Traits
         self.others = basicUI.StatWithTooltip(self.character, 'other traits')
 
@@ -70,15 +68,14 @@ class InventorySheet(QWidget):
         rcol.setAlignment(self.description, Qt.AlignHCenter|Qt.AlignTop)
         rcol.addWidget(self.weapons)
         rcol.addWidget(self.equipment)
-        rcol.addWidget(self.toggle)
         box.addLayout(rcol)
 
     def edit_toggle(self):
-        self.character.edit_mode = not self.character.edit_mode
         self.others.edit_toggle()
         self.ritesmiracles.edit_toggle()
         self.languages.edit_toggle()
         self.description.edit_toggle()
+        self.history.edit_toggle()
 
 class RitesMiracles(QWidget):
     def __init__(self, character):
@@ -118,14 +115,14 @@ class RitesMiracles(QWidget):
         for name in self.character.stats['rites or miracles']:
             self.items[self.row] = {'name': name}
             details = self.character.stats['rites or miracles'][name]
-            level = details['level']
+            level = details['level'] # may be str if read
             tooltip = details['tooltip']
 
             # entry name
             self.items[self.row]['button'] = QPushButton(name.title())
             self.items[self.row]['button'].setStyleSheet("QPushButton {font: 10pt; border: none}")
             self.items[self.row]['button'].setCursor(QCursor(Qt.PointingHandCursor))
-            self.items[self.row]['button'].setTooltip[tooltip]
+            self.items[self.row]['button'].setToolTip(tooltip)
             self.edit_buttons.addButton(self.items[self.row]['button'], self.row)
 
             # level
@@ -232,7 +229,6 @@ class RitesMiracles(QWidget):
             # add the new button back to end
             self.grid.addWidget(self.new_button, self.row, 0)
 
-
         elif "####delete####" in name:
             # delete chosen
             # remove stat widget
@@ -264,7 +260,7 @@ class RitesMiracles_Dialog(QDialog):
         self.setWindowTitle(wintitle)
         self.name = name
         self.tooltip = tooltip
-        self.level = level
+        self.level = int(level) # may be a str if read
         self.edit = edit
 
         self.initUI()
@@ -318,7 +314,7 @@ class RitesMiracles_Dialog(QDialog):
         Sends an accept signal but adds a delete flag to output
         '''
 
-        self.name_entry.insert("####delete####")
+        self.name_entry.insert("a####delete####")
         self.accept()
 
     def get_input(wintitle, name = '', tooltip = '', level = 0, edit=False):
@@ -371,6 +367,7 @@ class Description (QWidget):
                 row += 1
 
     def edit_toggle(self):
+        self.text.edit_toggle()
         for stat in self.items:
             self.items[stat].edit_toggle()
     
