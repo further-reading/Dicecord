@@ -1,7 +1,26 @@
 # Dicecord - A Discord Diceroller and Character Sheet
 A python based client for dispalying character sheets, rolling dice and printing results to a Discord chat channel. Uses Chronicles of Darkenss ruleset.
 
-![Client](https://raw.githubusercontent.com/further-reading/Dicecord/master/dicecord full sample.PNG "Client")  
+**Table of Contents**  *generated with [DocToc](http://doctoc.herokuapp.com/)*
+
+- [Splash Screen](#)
+	- [New Character Dialogue](#)
+- [Character Sheet](#)
+	- [Edit Mode](#)
+	- [Discord Details](#)
+		- [Remove Dots](#)
+		- [Skill Specialties](#)
+		- [Edit Entry Details](#)
+	- [Free Edit](#)
+- [Inventory](#)
+	- [Edit Mode](#)
+	- [Enchanted Items and Mana](#)
+- [Personality Settings](#)
+- [Save and Import](#)
+- [Roll Instructions](#)
+- [Note On Rate Limit](#)
+
+![Client](https://raw.githubusercontent.com/further-reading/Dicecord/master/dicecord%20full%20sample.PNG "Client")  
 
 ## Splash Screen
 ![Splash](https://raw.githubusercontent.com/further-reading/Dicecord/master/splash.PNG "Splash Screen")
@@ -12,7 +31,7 @@ On activation you will be greeted with the splash screen. Use the commands to ch
 The "New Character" dialogue will appear when selecting "New Character" from the splash screen of the File menu on a character sheet. It will ask you to select the type of character you are making and offer to switch dark era skills. At the time of writing only Mages can be selected.
 
 ## Character Sheet
-In the current build it displays the character sheet for Mage: the Awakening modern eras. The client shows three tabs: Stats, Inventory and Notes.
+In the current build it displays the character sheet for Mage: the Awakening. The client shows three tabs: Stats, Inventory and Notes.
 
 ### Edit Mode
 In Edit Mode you change all of your character details. To activate edit mode click the edit button in the toolbar:  
