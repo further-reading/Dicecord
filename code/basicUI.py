@@ -627,6 +627,7 @@ class Willpower(QWidget):
 
     def update_willpower(self):
         self.current = self.character.stats['willpower']
+        print(self.current)
 
         for x in range(1, 11):
             if x <= self.current:

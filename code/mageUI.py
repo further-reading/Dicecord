@@ -38,7 +38,7 @@ for arcana in ARCANA:
 for skill in stats.SKILLS:
     DEFAULT[skill] = 0
 for attribute in stats.ATTRIBUTES:
-    DEFAULT[attribute] = 0
+    DEFAULT[attribute] = 1
 for col in HEADERS:
     for header in col:
         DEFAULT[header] = ''
@@ -213,7 +213,7 @@ class StatsSheet(QWidget):
             # apply changes
             self.character.update_derivitives()
             self.derivitives.update_all()
-            self.willpower.update()
+            self.willpower.update_willpower()
             self.health.update_max()
             self.mana.update_mana()
 
