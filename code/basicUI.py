@@ -1282,6 +1282,7 @@ class Hover_Label_Col(QWidget):
             self.box.addWidget(self.new_button)
         
 
+
         elif "####delete####" in label:
             # delete chosen
             # remove stat widget
@@ -1368,6 +1369,7 @@ class Label_Tooltip_Dialog (QDialog):
         '''
         
         self.title_entry.insert("a####DELETE####")
+
         self.accept()
 
     def get_input(wintitle, title = '', tooltip = '', edit = False):
