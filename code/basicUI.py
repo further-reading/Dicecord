@@ -46,7 +46,11 @@ class Label_Entry_Combo(QWidget):
         label.setMinimumWidth(50)
         self.content = QLineEdit()
         self.content.setMaximumWidth(100)
-        self.content.insert(self.character.stats[self.name])
+        try:
+            self.content.insert(self.character.stats[self.name])
+        except KeyError:
+            # happens when no content when read
+            self.character.stats[self.name] = ''
         
         box = QHBoxLayout()
         self.setLayout(box)
@@ -74,6 +78,45 @@ class Label_Entry_Combo(QWidget):
         if not self.character.edit_mode:
             # if edit mode turned off, apply changes
             self.save_changes()
+
+class Lined_Button(QWidget):
+    def __init__(self, text='', tooltip=''):
+        super().__init__()
+        self.text = text
+        self.tooltip = tooltip
+        self.setMinimumWidth(100)
+        self.initUI()
+         
+         
+    def initUI(self):      
+        self.grid = QGridLayout()
+        self.grid.setSpacing(0)
+        self.grid.setContentsMargins(0,0,0,0)
+        self.setLayout(self.grid)
+         
+        self.button = QPushButton(self.text)
+        self.button.setStyleSheet("QPushButton {font: 10pt; border: none}")
+         
+        self.grid.addWidget(self.button,0,0)
+         
+ 
+    def paintEvent(self, event):
+        qp = QPainter()
+        qp.begin(self)
+        self.drawLine(qp)
+        qp.end()
+ 
+    def drawLine(self, qp):
+        size = self.size()
+        qp.setPen(Qt.black)
+        qp.drawLine(0,size.height()-1,size.width(),size.height()-1)
+ 
+    def change_text(self, text='', tooltip=''):
+        self.text = text
+        self.tooltip = tooltip
+        self.button.setText(text)
+        self.button.setToolTip(tooltip)
+        self.update()
 
 class Skills(QWidget):
     def __init__(self, character):
@@ -156,16 +199,18 @@ class Stat_Col(QWidget):
             row += 1
         
 
-class Merits(QWidget):
+class StatWithTooltip(QWidget):
     '''
-    Object for holding merits.
-    Handles addition and removal of merits along with rating update.
+    Object for holding stats with hover tooltips.
+    Handles addition and removal of stats along with rating update.
     '''
 
-    def __init__(self, character):
+    def __init__(self, character, name):
         super().__init__()
         self.character = character
+        self.name = name
         self.setStyleSheet("QLabel { font: 13pt}")
+        self.new_button = None
         self.initUI()
 
     def initUI(self):
@@ -174,10 +219,10 @@ class Merits(QWidget):
         self.box.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.box)
 
-        stats = self.character.stats['merits']
-        self.merits = {}
+        content = self.character.stats[self.name]
+        self.stats = {}
 
-        self.label = QLabel('===MERITS===')
+        self.label = QLabel('===' + self.name.upper() + '===')
         self.box.addWidget(self.label)
         self.box.setAlignment(Qt.AlignTop)
         self.box.setAlignment(self.label, Qt.AlignHCenter)
@@ -187,16 +232,16 @@ class Merits(QWidget):
         self.delete_buttons.buttonClicked[int].connect(self.edit_entry)
 
         self.row = 1
-        for stat in stats:
-            # There can be a variable number of merits, so must be drawn with a loop.
+        for stat in content:
+            # There can be a variable number of entries, so must be drawn with a loop.
             # starts at 1 since the label takes the 0 spot.
-            merit = Stat(self.character, stat, type="merit")
+            item = Stat(self.character, stat, type="tooltip", group = self.name)
             # a self.merits dict is made to help with deltion method
-            self.merits[self.row] = merit
+            self.stats[self.row] = item
             # delete buttons are added to a button group with their row as an ID
-            self.delete_buttons.addButton(merit.label, self.row)
+            self.delete_buttons.addButton(item.label, self.row)
 
-            self.box.addWidget(self.merits[self.row])
+            self.box.addWidget(self.stats[self.row])
 
             self.row += 1
 
@@ -228,26 +273,26 @@ class Merits(QWidget):
         if not index:
             current_title = None
             # add new item if no index given
-            label, tooltip, ok = Label_Tooltip_Dialog.get_input(wintitle="Add Merit")
+            new, tooltip, ok = Label_Tooltip_Dialog.get_input(wintitle="Add " + self.name.title())
 
         else:
             # edit current item
-            current = self.merits[index]
-            current_title = current.label.text().title()
+            current = self.stats[index]
+            current_title = current.label.text().lower()
             current_tooltip = current.label.toolTip()
-            label, tooltip, ok = Label_Tooltip_Dialog.get_input(title=current_title, tooltip=current_tooltip,
-                                                                        edit=True, wintitle="Change Merit")
+            label, tooltip, ok = Label_Tooltip_Dialog.get_input(title=current_title.title(), tooltip=current_tooltip,
+                                                                        edit=True, wintitle="Change " + self.name.title())
 
         if not ok:
             # cancel pressed
             return
 
-        if not current_title and label.lower() in self.character.stats['merits']:
+        if not current_title and new in self.character.stats[self.name]:
             # add new but title already in use
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Warning)
 
-            msg.setText("Merit with this name already exists.")
+            msg.setText("Item with this name already exists.")
             msg.setInformativeText("Please use unique name.")
             msg.setWindowTitle("Duplicate Name")
             msg.setStandardButtons(QMessageBox.Ok)
@@ -256,20 +301,18 @@ class Merits(QWidget):
         elif not current_title:
             # Only adds new if entry by that name does not exist yet
             # add entry on character object
-            new = label.lower()
-            self.character.stats["merit details"][new] = tooltip
-            self.character.stats["merits"][new] = 0
+            self.character.stats[self.name][new] = {'rating': 0, 'tooltip': tooltip}
 
             # creates entry
-            merit = Stat(self.character, new, type="merit")
-            self.merits[self.row] = merit
-            self.delete_buttons.addButton(merit.label, self.row)
+            item = Stat(self.character, new, type="tooltip", group = self.name)
+            self.stats[self.row] = item
+            self.delete_buttons.addButton(item.label, self.row)
 
             # remove the add new button
             self.box.removeWidget(self.new_button)
 
             # add the new Stat widget and delete button
-            self.box.addWidget(merit)
+            self.box.addWidget(item)
 
             # add 1 to self.row
             self.row += 1
@@ -278,21 +321,20 @@ class Merits(QWidget):
             self.box.addWidget(self.new_button)
 
 
-        elif "####DELETE####" in label:
+        elif "####delete####" in label:
             # delete chosen
             # remove stat widget
-            self.box.removeWidget(self.merits[index])
-            sip.delete(self.merits[index])
+            self.box.removeWidget(self.stats[index])
+            sip.delete(self.stats[index])
 
             # remove associated data
-            del self.character.stats["merits"][current_title.lower()]
-            del self.character.stats["merit details"][current_title.lower()]
-            del self.merits[index]
+            del self.character.stats[self.name][current_title]
+            del self.stats[index]
 
         else:
             # Update tooltip of existing entry
             current.label.setToolTip(tooltip)
-            self.character.stats["merit details"][current_title.lower()] = tooltip
+            self.character.stats[self.name][current_title]['tooltip'] = tooltip
             if tooltip == '':
                 # update cursor if blank now
                 current.label.setCursor(QCursor(Qt.ArrowCursor))
@@ -585,6 +627,7 @@ class Willpower(QWidget):
 
     def update_willpower(self):
         self.current = self.character.stats['willpower']
+        print(self.current)
 
         for x in range(1, 11):
             if x <= self.current:
@@ -725,16 +768,18 @@ class Stat(QWidget):
     In form "name\n OOOOO" for big dots
     '''
     
-    def __init__(self, character, name, maximum = 5, small=True, type=""):
+    def __init__(self, character, name, maximum = 5, small=True, type="", group = ''):
         super().__init__()
         self.maximum = maximum
         self.name = name
         self.character = character
         self.type = type
-        if self.type == "merit":
-            self.current = character.stats['merits'][name]
+        if self.type == "tooltip":
+            self.current = int(character.stats[group][name]['rating']) # may be str when read
+            self.tooltip = character.stats[group][name]['tooltip']
         else:
             self.current = character.stats[name]
+            
         if small:
             self.setStyleSheet("QLabel { font: 10pt}")
             self.initSmallUI()
@@ -763,17 +808,15 @@ class Stat(QWidget):
                 self.label.setToolTip(self.tooltip)
                 self.label.setStyleSheet("QPushButton {border:none; font-size: 10pt; font: bold; text-align: left}")
 
-        elif self.type == 'merit':
+        elif self.type == 'tooltip':
             # like skill but click connection not set here
-            # click will allow for removing items so will be handled by a buttongroup in merit object
-            self.tooltip = ""
+            # click will allow for removing items so will be handled by a buttongroup in main object
             self.label = QPushButton(self.name.title())
             self.label.setStyleSheet("QPushButton {border:none; font-size: 10pt; text-align: left}")
             if len(self.name.title()) <= len("Investigation"):
                 # at minimum this will be as big as the longest default stat name
                 # If bigger then the UI will stretch to accomadate
                 self.label.setMinimumWidth(105)
-            self.tooltip = self.character.stats['merit details'][self.name]
             if self.tooltip != '':
                 # if tooltip isn't blank, cursor and tolltip change added
                 self.label.setCursor(QCursor(Qt.WhatsThisCursor))
@@ -1062,6 +1105,63 @@ class Num_with_Line(QWidget):
         self.text = " " + new_text + " "
         self.rating.setText(self.text)
 
+class TextBoxEntry(QWidget):
+    def __init__(self, character, stat, title=True):
+        super().__init__()
+        self.character = character
+        self.stat = stat
+        self.title = title
+        self.initUI()
+
+    def initUI(self):
+        self.grid = QGridLayout()
+        self.setLayout(self.grid)
+        self.grid.setAlignment(Qt.AlignTop)
+
+
+        if self.title:
+            overall_label = QLabel()
+            overall_label.setText('==' + self.stat.upper() + '==')
+            overall_label.setStyleSheet("QLabel {font: 13pt;}")
+            self.grid.addWidget(overall_label, 0, 0)
+            self.grid.setAlignment(overall_label, Qt.AlignHCenter)
+
+        self.box = TextEditResizing(self.character.stats[self.stat])
+        self.box.setReadOnly(not self.character.edit_mode)
+        self.grid.setAlignment(self.box, Qt.AlignTop)
+        self.grid.addWidget(self.box, 1, 0)
+        
+
+    def edit_toggle(self):
+        self.box.setReadOnly(not self.character.edit_mode)
+
+        if not self.character.edit_mode:
+            # save changes
+            self.character.stats[self.stat] = self.box.toPlainText()
+
+
+class TextEditResizing(QTextEdit):
+    '''
+    Custom Text Edit Widget
+    Starts small and resizes when new content added
+    '''
+    def __init__(self, initText):
+        super().__init__()  
+        self.document().contentsChanged.connect(self.sizeChange)
+        
+        self.heightMax = 20
+
+        # this is used to initialise the height of the window
+        self.setText(initText)
+        self.show()
+        self.sizeChange()
+
+    def sizeChange(self):
+        docHeight = self.document().size().height()
+        if docHeight > self.heightMax:
+            self.setMaximumHeight(docHeight+5)
+
+
 class Hover_Label_Col(QWidget):
     def __init__(self, title, character, stat_name):
         super().__init__()
@@ -1091,7 +1191,14 @@ class Hover_Label_Col(QWidget):
         for stat in self.character.stats[self.stat_name]:
             button = QPushButton(stat.title())
             button.setCursor(QCursor(Qt.WhatsThisCursor))
-            button.setToolTip(self.character.stats[self.stat_name][stat])
+            
+            item = self.character.stats[self.stat_name][stat]
+            if type(item) is dict:
+                tooltip = item['tooltip']
+            else:
+                tooltip = item
+                
+            button.setToolTip(tooltip)
             button.setStyleSheet("QPushButton {border:none; font: 10pt}")
 
             self.content[self.row] = button
@@ -1151,12 +1258,12 @@ class Hover_Label_Col(QWidget):
             # Only adds new if entry by that name does not exist yet
             # add entry on character object
             new = label.lower()
-            self.character.stats[self.stat_name][new] = tooltip
+            self.character.stats[self.stat_name][new] = {'tooltip': tooltip}
 
             # creates new button
             button = QPushButton(new.title())
             button.setCursor(QCursor(Qt.WhatsThisCursor))
-            button.setToolTip(self.character.stats[self.stat_name][new])
+            button.setToolTip(tooltip)
             button.setStyleSheet("QPushButton {border:none; font: 10pt}")
 
             self.content[self.row] = button
@@ -1175,7 +1282,8 @@ class Hover_Label_Col(QWidget):
             self.box.addWidget(self.new_button)
         
 
-        elif "####DELETE####" in label:
+
+        elif "####delete####" in label:
             # delete chosen
             # remove stat widget
             self.box.removeWidget(self.content[index])
@@ -1187,7 +1295,7 @@ class Hover_Label_Col(QWidget):
             
         else:
             # Update tooltip of existing entry
-            self.character.stats[self.stat_name][current.text()] = tooltip
+            self.character.stats[self.stat_name][current.text()]['tooltip'] = tooltip
             current.setToolTip(tooltip)
 
     def edit_toggle(self):
@@ -1260,7 +1368,8 @@ class Label_Tooltip_Dialog (QDialog):
         Sends an accept signal but adds a delete flag to output
         '''
         
-        self.title_entry.insert("####DELETE####")
+        self.title_entry.insert("a####DELETE####")
+
         self.accept()
 
     def get_input(wintitle, title = '', tooltip = '', edit = False):
@@ -1269,7 +1378,9 @@ class Label_Tooltip_Dialog (QDialog):
         '''
         dialog = Label_Tooltip_Dialog(title, tooltip, edit, wintitle)
         result = dialog.exec_()
-        return (dialog.title_entry.text(), dialog.tooltip_entry.toPlainText(), result == QDialog.Accepted)
+        title = dialog.title_entry.text().lower()
+        tooltip = dialog.tooltip_entry.toPlainText()
+        return (title, tooltip, result == QDialog.Accepted)
 
 
 class Weapons(QWidget):
@@ -1559,12 +1670,15 @@ class Weapons_Dialog(QDialog):
         super().__init__()
         self.setWindowTitle(wintitle)
         self.name = name
-        self.damage = damage
         self.range = weapon_range
-        self.clip = clip
-        self.init = init
-        self.str = strength
-        self.size = size
+
+        # may be str when read
+        self.damage = int(damage)
+        self.clip = int(clip)
+        self.init = int(init)
+        self.str = int(strength)
+        self.size = int(size)
+
         self.edit = edit
 
         self.initUI()
@@ -1653,7 +1767,7 @@ class Weapons_Dialog(QDialog):
         Sends an accept signal but adds a delete flag to output
         '''
 
-        self.name_entry.insert("####delete####")
+        self.name_entry.insert("a####delete####")
         self.accept()
 
     def get_weapon(wintitle, name='', damage=0, weapon_range='', clip=0, init=0, strength=0, size=1, edit=False):
@@ -1670,3 +1784,341 @@ class Weapons_Dialog(QDialog):
         out_str = dialog.str_entry.value()
         out_size = dialog.size_entry.value()
         return (out_name, out_damage, out_range, out_clip, out_init, out_str, out_size, result == QDialog.Accepted)
+
+class Equipment(QWidget):
+    def __init__(self, character):
+        super().__init__()
+        self.character = character
+        self.initUI()
+
+    def initUI(self):
+
+        self.grid = QGridLayout()
+        self.setLayout(self.grid)
+        self.grid.setAlignment(Qt.AlignTop)
+
+        overall_label = QLabel()
+        overall_label.setText('==Equipment==')
+        overall_label.setStyleSheet("QLabel {font: 13pt;}")
+        self.grid.addWidget(overall_label, 0, 0, 1, 4)
+        self.grid.setAlignment(overall_label, Qt.AlignHCenter)
+
+        # name, durability, structure, size, cost
+        overall_name = QLabel("Item")
+        overall_name.setStyleSheet("QLabel {text-decoration: underline; font: 11pt}")
+        overall_durability = QLabel("Durability")
+        overall_durability.setStyleSheet("QLabel {text-decoration: underline; font: 11pt}")
+        overall_structure = QLabel("Structure")
+        overall_structure.setStyleSheet("QLabel {text-decoration: underline; font: 11pt}")
+        overall_size = QLabel("Size")
+        overall_size.setStyleSheet("QLabel {text-decoration: underline; font: 11pt}")
+        overall_cost = QLabel("Cost")
+        overall_cost.setStyleSheet("QLabel {text-decoration: underline; font: 11pt}")
+
+        self.grid.addWidget(overall_name, 1, 0)
+        self.grid.setAlignment(overall_name, Qt.AlignHCenter)
+        self.grid.addWidget(overall_durability, 1, 1)
+        self.grid.setAlignment(overall_durability, Qt.AlignHCenter)
+        self.grid.addWidget(overall_structure, 1, 2)
+        self.grid.setAlignment(overall_structure, Qt.AlignHCenter)
+        self.grid.addWidget(overall_size, 1, 3)
+        self.grid.setAlignment(overall_size, Qt.AlignHCenter)
+        self.grid.addWidget(overall_cost, 1, 4)
+        self.grid.setAlignment(overall_cost, Qt.AlignHCenter)
+
+        self.items = {}
+        self.row = 2
+        self.edit_buttons = QButtonGroup()
+        self.edit_buttons.buttonClicked[int].connect(self.edit_entry)
+
+        # self.character.stats['equipment'][name] = {tooltip, durability, structure, size, cost}
+
+        for name in self.character.stats['equipment']:
+            self.items[self.row] = {'name': name}
+            details = self.character.stats['equipment'][name]
+            tooltip = details['tooltip']
+            durability = details['durability']
+            structure = details['structure']
+            size = details['size']
+            cost = details['cost']
+
+            # name
+            self.items[self.row]['button'] = QPushButton(name.title())
+            self.items[self.row]['button'].setStyleSheet("QPushButton {font: 10pt; border: none}")
+            self.items[self.row]['button'].setCursor(QCursor(Qt.PointingHandCursor))
+            self.items[self.row]['button'].setToolTip(tooltip)
+            self.edit_buttons.addButton(self.items[self.row]['button'], self.row)
+
+            # durability
+            self.items[self.row]['durability'] = QLabel(str(durability))
+            self.items[self.row]['durability'].setStyleSheet("QLabel {font: 10pt}")
+            
+            # structure
+            self.items[self.row]['structure'] = QLabel(str(structure))
+            self.items[self.row]['structure'].setStyleSheet("QLabel {font: 10pt}")
+            
+            # size
+            self.items[self.row]['size'] = QLabel(str(size))
+            self.items[self.row]['size'].setStyleSheet("QLabel {font: 10pt}")
+            
+            # cost
+            self.items[self.row]['cost'] = QLabel(str(cost))
+            self.items[self.row]['cost'].setStyleSheet("QLabel {font: 10pt}")
+
+            self.grid.addWidget(self.items[self.row]['button'], self.row, 0)
+            self.grid.setAlignment(self.items[self.row]['button'], Qt.AlignHCenter)
+            self.grid.addWidget(self.items[self.row]['durability'], self.row, 1)
+            self.grid.setAlignment(self.items[self.row]['durability'], Qt.AlignHCenter)
+            self.grid.addWidget(self.items[self.row]['structure'], self.row, 2)
+            self.grid.setAlignment(self.items[self.row]['structure'], Qt.AlignHCenter)
+            self.grid.addWidget(self.items[self.row]['size'], self.row, 3)
+            self.grid.setAlignment(self.items[self.row]['size'], Qt.AlignHCenter)
+            self.grid.addWidget(self.items[self.row]['cost'], self.row, 4)
+            self.grid.setAlignment(self.items[self.row]['cost'], Qt.AlignHCenter)
+            self.row += 1
+
+        # add the new button to end
+        self.new_button = QPushButton("Add New")
+        self.new_button.setMaximumWidth(60)
+        self.new_button.clicked.connect(self.edit_entry)
+        self.grid.addWidget(self.new_button, self.row, 0)
+
+    def edit_entry(self, index=None):
+        # can edit outside of edit mode
+        
+        if not index:
+            current_name = None
+            # add new item if no index given
+            name, tooltip, durability, structure, size, cost, ok = Equipment_Dialog.get_input("Add Item")
+
+        else:
+            # edit current item
+            current = self.items[index]
+            current_name = current['name']
+            current_details = self.character.stats['equipment'][current_name]
+
+            current_tooltip = current_details['tooltip']
+            current_durability = current_details['durability']
+            current_structure = current_details['structure']
+            current_size = current_details['size']
+            current_cost = current_details['cost']
+
+            name, tooltip, durability, structure, size, cost, ok = Equipment_Dialog.get_input(
+                "Change Item",
+                current_name,
+                current_tooltip,
+                current_durability,
+                current_structure,
+                current_size,
+                current_cost,
+                edit=True)
+
+        if not ok:
+            # cancel pressed
+            return
+
+        if not current_name and name in self.character.stats['equipment']:
+            # add new but title already in use
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Warning)
+
+            msg.setText("Item with this name already exists.")
+            msg.setInformativeText("Please use unique name.")
+            msg.setWindowTitle("Duplicate Name")
+            msg.setStandardButtons(QMessageBox.Ok)
+            retval = msg.exec_()
+
+        elif not current_name:
+            # Only adds new if entry by that name does not exist yet
+            # add entry on character object
+            self.character.stats['equipment'][name] = {'tooltip': tooltip, 'durability': durability, 'structure': structure,
+                                                     'size': size, 'cost': cost}
+
+            # create entry
+            self.items[self.row] = {'name': name}
+
+            # name
+            self.items[self.row]['button'] = QPushButton(name.title())
+            self.items[self.row]['button'].setStyleSheet("QPushButton {font: 10pt; border: none}")
+            self.items[self.row]['button'].setCursor(QCursor(Qt.PointingHandCursor))
+            self.items[self.row]['button'].setToolTip(tooltip)
+            self.edit_buttons.addButton(self.items[self.row]['button'], self.row)
+
+            # durability
+            self.items[self.row]['durability'] = QLabel(str(durability))
+            self.items[self.row]['durability'].setStyleSheet("QLabel {font: 10pt}")
+            
+            # structure
+            self.items[self.row]['structure'] = QLabel(str(structure))
+            self.items[self.row]['structure'].setStyleSheet("QLabel {font: 10pt}")
+            
+            # size
+            self.items[self.row]['size'] = QLabel(str(size))
+            self.items[self.row]['size'].setStyleSheet("QLabel {font: 10pt}")
+            
+            # cost
+            self.items[self.row]['cost'] = QLabel(str(cost))
+            self.items[self.row]['cost'].setStyleSheet("QLabel {font: 10pt}")
+
+            # remove the add new button
+            self.grid.removeWidget(self.new_button)
+
+            # add the new widgets
+            self.grid.addWidget(self.items[self.row]['button'], self.row, 0)
+            self.grid.setAlignment(self.items[self.row]['button'], Qt.AlignHCenter)
+            self.grid.addWidget(self.items[self.row]['durability'], self.row, 1)
+            self.grid.setAlignment(self.items[self.row]['durability'], Qt.AlignHCenter)
+            self.grid.addWidget(self.items[self.row]['structure'], self.row, 2)
+            self.grid.setAlignment(self.items[self.row]['structure'], Qt.AlignHCenter)
+            self.grid.addWidget(self.items[self.row]['size'], self.row, 3)
+            self.grid.setAlignment(self.items[self.row]['size'], Qt.AlignHCenter)
+            self.grid.addWidget(self.items[self.row]['cost'], self.row, 4)
+            self.grid.setAlignment(self.items[self.row]['cost'], Qt.AlignHCenter)
+
+            # add 1 to self.row
+            self.row += 1
+
+            # add the new button back to end
+            self.grid.addWidget(self.new_button, self.row, 0)
+
+
+        elif "a####delete####" in name:
+            # delete chosen
+            # remove stat widget
+            for widget in self.items[index]:
+                if widget != 'name':
+                    self.grid.removeWidget(self.items[index][widget])
+                    sip.delete(self.items[index][widget])
+
+            # remove associated data
+            del self.character.stats["equipment"][current_name.lower()]
+            del self.items[index]
+
+        else:
+            # Update character object
+            self.character.stats['equipment'][name] = {'tooltip': tooltip, 'durability': durability, 'structure': structure,
+                                                     'size': size, 'cost': cost}
+
+            # Update tooltip
+            self.items[index]['button'].setToolTip(tooltip)
+            # Update durability
+            self.items[index]['durability'].setText(str(durability))
+            # Update structure
+            self.items[index]['structure'].setText(str(structure))
+            # Update size
+            self.items[index]['size'].setText(str(size))
+            # Update cost
+            self.items[index]['cost'].setText(str(cost))
+
+class Equipment_Dialog(QDialog):
+    '''
+    Dialog for entering/changing labels with tooltips
+    '''
+
+    def __init__(self, wintitle, name='', tooltip='', durability=0, structure=0, size=0, cost=0, edit=False):
+        super().__init__()
+        self.setWindowTitle(wintitle)
+        self.name = name
+        self.tooltip = tooltip
+
+        # these may be str when read
+        self.durability = int(durability)
+        self.structure = int(structure)
+        self.size = int(size)
+        self.cost = int(cost)
+
+        self.edit = edit
+
+        self.initUI()
+
+    def initUI(self):
+        self.grid = QGridLayout()
+        self.setLayout(self.grid)
+
+        self.name_label = QLabel("Name:")
+        self.name_entry = QLineEdit()
+        self.name_entry.insert(self.name.title())
+
+        self.tooltip_label = QLabel("Tooltip:")
+        self.tooltip_entry = QTextEdit()
+        self.tooltip_entry.setText(self.tooltip)
+
+        self.durability_label = QLabel("Durability:")
+        self.durability_entry = QSpinBox()
+        self.durability_entry.setMaximumWidth(30)
+        self.durability_entry.setValue(self.durability)
+
+        self.structure_label = QLabel("Structure:")
+        self.structure_entry = QSpinBox()
+        self.structure_entry.setMaximumWidth(30)
+        self.structure_entry.setValue(self.structure)
+
+        self.size_label = QLabel("Size:")
+        self.size_entry = QSpinBox()
+        self.size_entry.setMaximumWidth(30)
+        self.size_entry.setValue(self.size)
+
+        self.cost_label = QLabel("Cost:")
+        self.cost_entry = QSpinBox()
+        self.cost_entry.setMaximumWidth(30)
+        self.cost_entry.setValue(self.cost)        
+
+        if self.edit:
+            # add delete button and disable name box if editing
+            self.name_entry.setDisabled(self.edit)
+            buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel | QDialogButtonBox.Discard,
+                                         Qt.Horizontal, self)
+            buttonBox.button(QDialogButtonBox.Discard).clicked.connect(self.del_item)
+            buttonBox.button(QDialogButtonBox.Discard).setText("Delete")
+        else:
+            # adding new - only okay and cancel button
+            buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal, self)
+
+        buttonBox.accepted.connect(self.accept)
+        buttonBox.rejected.connect(self.reject)
+
+        self.grid.addWidget(self.name_label, 0, 0)
+        self.grid.addWidget(self.name_entry, 0, 1, 1, 4)
+
+        self.grid.addWidget(self.tooltip_label, 1, 0)
+        self.grid.setAlignment(self.tooltip_label, Qt.AlignTop)
+        self.grid.addWidget(self.tooltip_entry, 1, 1, 1, 4)
+
+        self.grid.addWidget(self.durability_label, 2, 1)
+        self.grid.addWidget(self.durability_entry, 2, 2)
+
+        self.grid.addWidget(self.structure_label, 2, 3)
+        self.grid.addWidget(self.structure_entry, 2, 4)
+        self.grid.setAlignment(self.structure_entry, Qt.AlignLeft)
+
+        self.grid.addWidget(self.size_label, 3, 1)
+        self.grid.addWidget(self.size_entry, 3, 2)
+
+        self.grid.addWidget(self.cost_label, 3, 3)
+        self.grid.addWidget(self.cost_entry, 3, 4)
+        self.grid.setAlignment(self.cost_entry, Qt.AlignLeft)
+
+        self.grid.addWidget(buttonBox, 5, 1, 1, 4)
+
+    def del_item(self):
+        '''
+        Handler for delete item action.
+        Sends an accept signal but adds a delete flag to output
+        '''
+
+        self.name_entry.insert("####delete####")
+        self.accept()
+
+    def get_input(wintitle, name='', tooltip='', durability=0, structure=0, size=0, cost=0, edit=False):
+        '''
+        Used to open a dialog window to enter details of label.
+        '''
+        dialog = Equipment_Dialog(wintitle, name, tooltip, durability, structure, size, cost, edit)
+        result = dialog.exec_()
+        out_name = dialog.name_entry.text().lower()
+        out_tooltip = dialog.tooltip_entry.toPlainText()
+        out_durability = dialog.durability_entry.value()
+        out_structure = dialog.structure_entry.value()
+        out_cost = dialog.cost_entry.value()
+        out_size = dialog.size_entry.value()
+        return (out_name, out_tooltip, out_durability, out_structure, out_size, out_cost, result == QDialog.Accepted)

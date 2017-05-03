@@ -35,7 +35,6 @@ SKILL_TYPE = {'mental': ['academics',
 
 STATS = {'skill specialties': {},
          'merits': {},
-         'merit details': {},
          'size': 5,
          'conditions': {},
          'weapons': {},
