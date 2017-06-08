@@ -56,7 +56,8 @@ del DEFAULT['archery']
 # default messaging
 goodMessages = ["You should take the beat, [userID].",
                 "Aren't I a good bot, [userID]?",
-                "Did you hack me, [userID]?"]
+                "Did you hack me, [userID]?",
+                "[userID] is a true creature of the night!"]
 badMessages = ["Don't blame your bad luck on me, [userID]! I'm just a random number generator.",
                "That was just a practice roll, right [userID]?",
                "[userID] rolls like a diary farmer.",

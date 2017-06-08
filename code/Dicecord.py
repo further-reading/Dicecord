@@ -7,7 +7,7 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
-import http.client, time, sys, copy, random
+import http.client, time, sys, copy, random, ctypes
 import urllib.error
 import urllib.request
 from player import Character
@@ -16,7 +16,7 @@ import mageUI, mageInventory
 import vampireUI, vampireInventory
 
 
-VERSION = "1.1"
+VERSION = "1.11"
 
 
 class Intro(QWidget):
@@ -214,6 +214,7 @@ class Main(QMainWindow):
         super().__init__()
         self.character = None
         self.initUI()
+        self.show()
         
     def initUI(self):
         self.setWindowTitle('Dicecord')
@@ -243,42 +244,48 @@ class Main(QMainWindow):
 
         # toolbar
         self.toolbar = self.addToolBar("Actions")
-        # # roller
-        roller_Action = QAction(QIcon(r'images\D10.ico'), 'Edit', self)
+        ## roller
+        roller_Action = QAction(QIcon(r'images\D10.ico'), 'Roll', self)
         roller_Action.setShortcut('Ctrl+R')
         roller_Action.triggered.connect(self.open_roller)
         self.toolbar.addAction(roller_Action)
 
-        # # edit mode
+        ## edit mode
         self.edit_Action = QAction(QIcon(r'images\edit.ico'), 'Edit', self)
         self.edit_Action.triggered.connect(self.edit_mode)
         self.edit_Action.setCheckable(True)
         self.toolbar.addAction(self.edit_Action)
 
+        ## mage cast
+##        if self.character.splat == 'mage':
+##            self.cast_Action = QAction(QIcon(INSERTPATH), 'Cast', self)
+##            self.cast_Action.triggered.connect(mageUI.castWindow)
+##            self.toolbar.addAction(self.cast_Action)
+
         # file menu
         menubar = self.menuBar()
         file_Menu = menubar.addMenu('&File')
-        # # New
+        ## New
         new_action = QAction('&New Character', self)
         new_action.setShortcut('Ctrl+N')
         file_Menu.addAction(new_action)
         new_action.triggered.connect(self.new_character)
-        # # Open
+        ## Open
         open_Action = QAction('&Open Character', self)
         open_Action.setShortcut('Ctrl+O')
         file_Menu.addAction(open_Action)
         open_Action.triggered.connect(self.import_character)
-        # # Save
+        ## Save
         save_Action = QAction('&Save Character', self)
         save_Action.setShortcut('Ctrl+S')
         file_Menu.addAction(save_Action)
         save_Action.triggered.connect(self.save)
-        # # Save As
+        ## Save As
         save_as_Action = QAction('&Save Character As', self)
         save_as_Action.setShortcut('Ctrl+Shift+S')
         file_Menu.addAction(save_as_Action)
         save_as_Action.triggered.connect(lambda: self.save(save_as = True))
-        # # Exit
+        ## Exit
         exit_Action = QAction('&Exit', self)
         exit_Action.setShortcut('Ctrl+Q')
         exit_Action.triggered.connect(self.close)
@@ -286,24 +293,24 @@ class Main(QMainWindow):
 
         # options menu
         options_Menu = menubar.addMenu('&Options')
-        # # Bot Personality
+        ## Bot Personality
         personality_action = QAction('&Personality Settings', self)
         personality_action.triggered.connect(self.personality)
         options_Menu.addAction(personality_action)
 
         # help menu
         help_Menu = menubar.addMenu('&Help')
-        # # ReadMe Link
+        ## ReadMe Link
         readme_action = QAction('Instructions', self)
         readme_action.triggered.connect(self.link)
         help_Menu.addAction(readme_action)
 
-        # # about
+        ## about
         about_Action = QAction('About', self)
         about_Action.triggered.connect(self.about_display)
         help_Menu.addAction(about_Action)
 
-        # # Check for updates
+        ## Check for updates
         update_action = QAction('Check for updates', self)
         update_action.triggered.connect(self.update_client)
         help_Menu.addAction(update_action)
@@ -313,20 +320,18 @@ class Main(QMainWindow):
         splat, computer, drive, firearms, ok = New_Character_Dialog.set_UI(self)
 
         if ok:
-            if splat == 'mage':
-                dots = stats.STATS.copy()
-                
+            self.character = Character(splat = splat)
+            
             # remove modern defaults
-            del dots['computer']
-            del dots['firearms']
-            del dots['drive']
+            del self.character.stats['computer']
+            del self.character.stats['firearms']
+            del self.character.stats['drive']
 
             # add replacements
-            dots[computer] = 0
-            dots[drive] = 0
-            dots[firearms] = 0
+            self.character.stats[computer] = 0
+            self.character.stats[drive] = 0
+            self.character.stats[firearms] = 0
 
-            self.character = Character(dots)
             self.sheet = Sheet(self.character)
             self.setCentralWidget(self.sheet)
             self.edit_Action.setChecked(True) # set checked
@@ -451,13 +456,12 @@ class Main(QMainWindow):
             self.sheet = Sheet(self.character)
             self.setCentralWidget(self.sheet)
 
-    def save(self, save_as = False):
+    def save(self, save_as = False):        
 
         if self.character.splat == 'mage':
             name = self.character.stats['shadow name']
         else:
             name = self.character.stats['name']
-
             
         if name == '':
             name = 'character'
@@ -474,6 +478,7 @@ class Main(QMainWindow):
             self.path = fname[0]
 
         self.character.save_xml(self.path)
+        
         # set as old_character copy for detecting further changes on quit
         self.old_character = copy.deepcopy(self.character)
 
@@ -924,12 +929,12 @@ class Dice_Roller(QWidget):
 
         # quiet mode, only send first message to channel, which will be a summary
         if quiet:
-            self.send(messages[0], self.character.stats['webhook'])
+            send(messages[0], self.character.stats['webhook'], self.parent)
             time.sleep(1)
 
         else:
             for message in messages:
-                self.send(message, self.character.stats['webhook'])
+                send(message, self.character.stats['webhook'], self.parent)
                 time.sleep(1)
 
         # Final element in list will be total successes
@@ -976,7 +981,7 @@ class Dice_Roller(QWidget):
                 out = random.choice(self.character.badMessages)
 
         out = out.replace("[userID]", self.character.stats['user id'])
-        self.send(out, self.character.stats['webhook'])
+        send(out, self.character.stats['webhook'], self.parent)
 
     def chance_handler(self):
         '''
@@ -996,7 +1001,7 @@ class Dice_Roller(QWidget):
         messages = self.character.roll_chance()
 
         for message in messages:
-            self.send(message, self.character.stats['webhook'])
+            send(message, self.character.stats['webhook'], self.parent)
             time.sleep(1)
 
         # Prints final result to client console
@@ -1012,7 +1017,7 @@ class Dice_Roller(QWidget):
 
         # check if empty
         if not last_roll:
-            # # only status bar updated if empty
+            ## only status bar updated if empty
             self.parent.status_update("No previous rolls")
 
         else:
@@ -1020,103 +1025,117 @@ class Dice_Roller(QWidget):
             self.dialog = New_Window(Last_Roll_Display(self.character), "Last Roll")
             self.dialog.show()
 
-    def send(self, message, webhook):
-        '''
-        Sends message to webhook
-        '''
+def send(message, webhook, parent):
+    '''
+    Sends message to webhook
+    '''
 
-        # create connection
-        # If expanding to other services further changes will be required here
-        conn = http.client.HTTPSConnection("discordapp.com")
-        
-        # input sanitation: the seperator for each element is replaced by a space if found in message
-        sep = "--11BOUND11"
-        message = message.replace(sep, " ")
+    # create connection
+    # If expanding to other services further changes will be required here
+    conn = http.client.HTTPSConnection("discordapp.com")
 
-        # This payload will make a Discord webhook send message to its associated channel
-        # If expanding to other services further changes may be required here
-        payload = sep + "\r\nContent-Disposition: form-data; name=\"content\"\r\n\r\n" + message + "\r\n" + sep + "--"
+    # input sanitation: the seperator for each element is replaced by a space if found in message
+    sep = "--11BOUND11"
+    message = message.replace(sep, " ")
 
-        # headers for the connection
-        # If expanding to other services further changes may be required here
-        headers = {
-                    'content-type': "multipart/form-data; boundary=" + sep[2:],
-                    'cache-control': "no-cache",
-                    }
-        
-        # sends a POST command to the webhook with the payload and headers defined above
-        conn.request("POST", webhook, payload, headers)
-        
-        # get response
-        res = conn.getresponse()
-        
-        # warning messages
-        text = res.read()
-        text = text.decode("utf-8")
-        
-        # first check if there was a warning message
-        # For discord, the data will be blank unless error occures sending webhook
-        # Usually a rate limit hit
-        # For expansion to other services this may need to be updated
-        
-        if text != "":
-            if "rate limited" in text:
-                # confirms that is is a rate limit on Discord
-                # Discord will helpfully tell the user how long they need to wait until the next retry 
-                index1 = text.find('"retry_after"')
-                chop = text[index1+13:]
-                wait = ''
-                for character in chop:
-                    # find the wait time requested
-                    # given in miliseconds usually
-                    if character in '0123456789':
-                        wait += character
-                    if character == '\n':
-                        break
-                
-                # wait will given in miliseconds, convert to seconds and add 0.5 just in case
-                wait = int(wait)/1000 + 0.5
-                
-                # update status, should always have at least 3 significant digits
-                self.parent.status_update("Rate limit hit. Will try again in " + str(wait)[:4] + " seconds.")
+    # This payload will make a Discord webhook send message to its associated channel
+    # If expanding to other services further changes may be required here
+    payload = sep + "\r\nContent-Disposition: form-data; name=\"content\"\r\n\r\n" + message + "\r\n" + sep + "--"
 
-                # try again after wait
-                time.sleep(wait)
-                self.send(message, webhook)
-                
-            if "400 Bad Request" in text:
-                # Likely bad bad URL
-                # look into making a pop up dialogue instead
-                self.parent.status_update("400 Bad Request - Double check URL.")
-                return
+    # headers for the connection
+    # If expanding to other services further changes may be required here
+    headers = {
+                'content-type': "multipart/form-data; boundary=" + sep[2:],
+                'cache-control': "no-cache",
+                }
 
-            elif text != "":
-                # Unexpected problem - Result printed to client console
-                # goes as a temp message so it won't be overwritten by success message
-                # user can still find results in last roll display
-                # might look into making this a pop up dialogue instead
-                index1 = text.find('"message"')
-                index2 = text.find('\n', index1)
-                chop = text[index1:index2]
-                self.parent.statusBar.showMessage(chop)
-                return
-            # end of if statement for warning message
+    # sends a POST command to the webhook with the payload and headers defined above
+    conn.request("POST", webhook, payload, headers)
 
-            # now include some rate limit protection
-            remaining = int(res.getheader('X-RateLimit-Remaining'))
-            # reset = int(res.getheader('X-RateLimit-Reset')) - int(time.time())
+    # get response
+    res = conn.getresponse()
 
-            # reset should be the number of seconds until rate limit refreshed
-            # In my experience it will reset faster than this
-            # For now, it will add delays to messages if remaining message count is less than or equal to 2
+    # warning messages
+    text = res.read()
+    text = text.decode("utf-8")
 
-            if remaining <= 2:
-                self.parent.status_update("Rate Limit approaching. Next message delay is 2 seconds.")
-                # already a 1 second delay between messages, so extra secound added here
-                time.sleep(1)
+    # first check if there was a warning message
+    # For discord, the data will be blank unless error occures sending webhook
+    # Usually a rate limit hit
+    # For expansion to other services this may need to be updated
+
+    if text != "":
+        if "rate limited" in text:
+            # confirms that is is a rate limit on Discord
+            # Discord will helpfully tell the user how long they need to wait until the next retry
+            index1 = text.find('"retry_after"')
+            chop = text[index1+13:]
+            wait = ''
+            for character in chop:
+                # find the wait time requested
+                # given in miliseconds usually
+                if character in '0123456789':
+                    wait += character
+                if character == '\n':
+                    break
+
+            # wait will given in miliseconds, convert to seconds and add 0.5 just in case
+            wait = int(wait)/1000 + 0.5
+
+            # update status, should always have at least 3 significant digits
+            parent.status_update("Rate limit hit. Will try again in " + str(wait)[:4] + " seconds.")
+
+            # try again after wait
+            time.sleep(wait)
+            send(message, webhook)
+
+        if "400 Bad Request" in text:
+            # Likely bad bad URL
+            # look into making a pop up dialogue instead
+            parent.status_update("400 Bad Request - Double check URL.")
+            return
+
+        elif text != "":
+            # Unexpected problem - Result printed to client console
+            # goes as a temp message so it won't be overwritten by success message
+            # user can still find results in last roll display
+            # might look into making this a pop up dialogue instead
+            index1 = text.find('"message"')
+            index2 = text.find('\n', index1)
+            chop = text[index1:index2]
+            parent.status_update(chop)
+            return
+        # end of if statement for warning message
+
+        # now include some rate limit protection
+        remaining = int(res.getheader('X-RateLimit-Remaining'))
+        # reset = int(res.getheader('X-RateLimit-Reset')) - int(time.time())
+
+        # reset should be the number of seconds until rate limit refreshed
+        # In my experience it will reset faster than this
+        # For now, it will add delays to messages if remaining message count is less than or equal to 2
+
+        if remaining <= 2:
+            parent.status_update("Rate Limit approaching. Next message delay is 2 seconds.")
+            # already a 1 second delay between messages, so extra secound added here
+            time.sleep(1)
+
+def is_admin():
+    try:
+        return ctypes.windll.shell32.IsUserAnAdmin()
+    except:
+        return False
 
 if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    dr = Main()
-    dr.show()
-    sys.exit(app.exec_())
+        # app = QApplication(sys.argv)
+        # Main()
+        # sys.exit(app.exec_())
+    
+    # check if admin
+    if is_admin():
+        app = QApplication(sys.argv)
+        Main()
+        sys.exit(app.exec_())
+    else:
+        # Re-run the program with admin rights
+        ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, "", None, 1)

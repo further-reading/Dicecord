@@ -83,8 +83,8 @@ class Character:
         # initiative = dexterity + composure
         self.stats['initiative'] = self.stats['dexterity'] + self.stats['composure']
 
-        # defense is lower of dex and wits
-        self.stats['defense'] = min(self.stats['dexterity'], self.stats['wits'])
+        # defense is lower of dex or wits, + atheltics
+        self.stats['defense'] = min(self.stats['dexterity'], self.stats['wits']) + self.stats['athletics']
 
     
     def state_health(self):

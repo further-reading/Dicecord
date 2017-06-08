@@ -23,6 +23,14 @@ ARCANA = ['death',
           'space',
           'time']
 
+PRACTICES = [('practice', 0)]
+
+DURATION = {0: 'length'}
+ADV_DURATION = {0: 'length'}
+
+SCALE = {0: 'length'}
+ADV_SCALE = {0: 'length'}
+
 # Mage sheet headers
 
 HEADERS = [['shadow name', 'user id', 'webhook'],
@@ -31,8 +39,9 @@ HEADERS = [['shadow name', 'user id', 'webhook'],
 
 # make default mage
 DEFAULT = {}
-for stat in stats.STATS.copy():
-    DEFAULT[stat] = stats.STATS[stat]
+statCopy = stats.STATS.copy()
+for stat in statCopy:
+    DEFAULT[stat] = statCopy[stat]
 for arcana in ARCANA:
     DEFAULT[arcana] = 0
 for skill in stats.SKILLS:
@@ -530,7 +539,7 @@ def from_xml(cls, dom):
             input_goodMessages.append(mess)
     else:
         # this happens is xml is v1.00
-        input_goodMessages = mageUI.goodMessages
+        input_goodMessages = goodMessages
 
     if badMessages:
         for message in badMessages:
@@ -538,7 +547,7 @@ def from_xml(cls, dom):
             input_badMessages.append(mess)
     else:
         # this happens is xml is v1.00
-        input_badMessages = mageUI.badMessages
+        input_badMessages = badMessages
 
     if goodRate != None:
         input_goodRate = int(goodRate.text)
@@ -559,3 +568,137 @@ def from_xml(cls, dom):
                badrate = input_badRate,
                notes = input_notes,
                splat = 'mage')
+
+class CastWindow(QWidget):
+    def __init__(self, character):
+        self.character = character
+        self.initUI()
+
+    def initUI(self):
+        self.grid = QGridLayout()
+        self.grid.setSpacing(5)
+        self.grid.setContentsMargins(0, 0, 0, 0)
+        self.setLayout(self.grid)
+        self.grid.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
+
+        # select arcana - dropdown
+        self.arcanum_label = QLabel("Primary Arcanum:")
+        self.arcanum_entry = QComboBox()
+        for arcanum in sorted(ARCANA):
+            self.arcanum_entry.addItem(arcanum.title() + ' (' + self.character.stats[arcanum] + ')')
+        self.arcanum_entry.currentIndexChanged.connect(self.update_details)
+
+        # select practice - dropdown
+        self.practice_label = QLabel("Practice:")
+        self.practice_entry = QComboBox()
+        for practice in sorted(PRACTICES):
+            self.practice_entry.addItem(practice[0].title() + ' (' + str(practice[1]))
+        self.practice_entry.currentIndexChanged.connect(self.update_details)
+
+        # select potency - spinbox
+        self.potency_label = QLabel("Potency:")
+        self.potency_entry = QSpinBox()
+        self.potency_entry.setMaximumWidth(30)
+        self.potency_entry.valueChanged.connect(self.update_details)
+
+        # select duration - check mark to switch to advanced
+        self.duration_label = QLabel("Duration:")
+        self.duration_entry = QComboBox()
+        for level in sorted(DURATION):
+            self.duration_entry.addItem(DURATION[level].title() + ' (' + str(level) + ')')
+
+        self.duration_entry.currentIndexChanged.connect(self.update_details)
+
+        self.duration_sel = QCheckBox()
+        self.duration_sel.setText("Advanced Duration")
+        #self.duration_sel.stateChanged.connect(self.duration_change)
+
+        # select scale - check mark to switch to advanced
+        self.scale_label = QLabel("Scale:")
+        self.scale_entry = QComboBox()
+        for level in sorted(SCALE):
+            self.scale_entry.addItem(SCALE[level].title() + ' (' + str(level) + ')')
+
+        self.scale_entry.currentIndexChanged.connect(self.update_details)
+
+        self.scale_sel = QCheckBox()
+        self.scale_sel.setText("Advanced Scale")
+
+        #self.scale_sel.stateChanged.connect(self.scale_change)
+
+        # select cast time
+
+        self.time_label = QLabel("Ritual Cycles:")
+        self.time_entry = QSpinBox()
+        self.time_entry.setMinimum(0)
+        self.time_entry.setValue(1)
+
+        self.time_entry.valueChanged.connect(self.update_details)
+
+        # This label depends on time_entry value
+        self.time_summary = QLabel()
+
+        # select additional reaches
+        ## new object needed, select value and explanation
+
+        # select additional yantras
+        ## same as previous object
+
+        # select paradox modifiers
+        ## same as previous object
+
+        # display of cast and paradox pool
+        self.pools = QLabel()
+
+        # button to state spell info
+        self.state_spell_button = QPushButton("State Spell Details")
+        self.state_spell_button.clicked.connect(self.state_spell_summary)
+
+        # button to roll spell
+        self.state_spell_button = QPushButton("State Spell Details")
+        self.state_spell_button.clicked.connect(self.roll)
+
+        self.update_details()
+
+    def update_details(self):
+        '''
+        Check widgets, calculate details, update UI
+        :return: 
+        '''
+        arcanum = int(self.arcanum_entry.currentText()[-2:-1])
+        self.cast_pool = self.character['stats']['gnosis'] + arcanum
+
+        # add yantra
+
+        # add extended cast time
+        # 0 = instant = +1 reach, ritual adds time based on Gnosis
+        ## if statement defining cast time, updates pool and time summary label
+
+        # remove potency
+
+        # remove duration
+
+        # remove scaling
+
+        self.paradox_pool = 'None'
+
+        # calculate free reaches
+
+        # update paradox pool if free reaches surpassed
+        # check if dedicated tool used and reduce paradox if so
+
+        if self.cast_pool <= 0:
+            self.cast_pool = 'Chance'
+
+        if self.paradox_pool.isdigit() and self.paradox_pool <= 0:
+            self.paradox_pool = 'Chance'
+
+        self.pools.setText("Cast Pool: " + str(self.cast_pool) + "   Paradox Pool: " + str(self.paradox_pool))
+
+    def state_spell_summary(self):
+        pass
+
+    def roll(self):
+        pass
+
+        
