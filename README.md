@@ -101,6 +101,6 @@ To view your last roll again, press the "Show Last Roll" button. This will open 
 The Chance Roll button rolls a chance die. On a chance die, only a 10 is a success but a 1 is a botch (critical failure). Also 10s are no longe rerolled.  
 
 ## Note On Rate Limit
-Webhooks have a "rate limit" that will cause commands to fail if too many are sent in quick succession. Generally, if more than 3 people are rolling at once you may hit the rate limit. The client will try to avoid this by waiting extra when the remaining messages on the current refresh are low. If a rate limit is hit Discord will return an error which states when the limit will refresh, the client will wait about half a second longer than its suggestion and try sending the result again.
+Webhooks have a "rate limit" that will cause commands to fail if too many are sent in quick succession. Generally, if more than 3 people are rolling at once you may hit the rate limit. The client will try to avoid this by waiting extra when the remaining messages on the current refresh are low.
 
-One way to avoid the rate limit is to create a dedicated webhook for each player. The downside of this approach is that the channel becomes pretty hard to read unless switched to compact mode.
+One way to avoid the rate limit is to create a dedicated webhook for each player.
