@@ -28,7 +28,7 @@ A python based client for dispalying character sheets, rolling dice and printing
 On activation you will be greeted with the splash screen. Use the commands to check for updates, create a new character or import a previously saved character.
 
 ### New Character Dialogue
-The "New Character" dialogue will appear when selecting "New Character" from the splash screen of the File menu on a character sheet. It will ask you to select the type of character you are making and offer to switch dark era skills. At the time of writin Mages or Vampires can be selected.
+The "New Character" dialogue will appear when selecting "New Character" from the splash screen of the File menu on a character sheet. It will ask you to select the type of character you are making and offer to switch dark era skills. At the time of writing Mages or Vampires can be selected.
 
 ## Character Sheet
 In the current build it displays the character sheet for Mage: the Awakening. The client shows three tabs: Stats, Inventory and Notes.
