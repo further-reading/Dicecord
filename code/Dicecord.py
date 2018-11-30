@@ -1120,22 +1120,7 @@ def send(message, webhook, parent):
             # already a 1 second delay between messages, so extra secound added here
             time.sleep(1)
 
-def is_admin():
-    try:
-        return ctypes.windll.shell32.IsUserAnAdmin()
-    except:
-        return False
-
 if __name__ == '__main__':
-        # app = QApplication(sys.argv)
-        # Main()
-        # sys.exit(app.exec_())
-    
-    # check if admin
-    if is_admin():
         app = QApplication(sys.argv)
         Main()
         sys.exit(app.exec_())
-    else:
-        # Re-run the program with admin rights
-        ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, "", None, 1)
