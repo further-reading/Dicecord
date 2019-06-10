@@ -36,15 +36,6 @@ DEFAULT['disciplines'] = {}
 DEFAULT['languages'] = {}
 DEFAULT['history'] = ""
 DEFAULT['other traits'] = {}
-DEFAULT['description'] = ''
-DEFAULT['age'] = ''
-DEFAULT['apparant age'] = ''
-DEFAULT['sex'] = ''
-DEFAULT['race'] = ''
-DEFAULT['hair'] = ''
-DEFAULT['eyes'] = ''
-DEFAULT['height'] = ''
-DEFAULT['weight'] = ''
 DEFAULT['rites or miracles'] = {}
 DEFAULT['equipment'] = {}
 

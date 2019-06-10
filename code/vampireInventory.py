@@ -39,7 +39,7 @@ class InventorySheet(QWidget):
         self.history = basicUI.TextBoxEntry(self.character, 'history')
 
         # Description
-        self.description = Description(self.character)
+        self.description = basicUI.Description(self.character)
 
         # Weapons
         self.weapons = basicUI.Weapons(self.character)
@@ -327,49 +327,6 @@ class RitesMiracles_Dialog(QDialog):
         out_tooltip = dialog.tooltip_entry.toPlainText()
         out_level = dialog.level_entry.value()
         return (out_name, out_tooltip, out_level, result == QDialog.Accepted)
-
-class Description (QWidget):
-    def __init__(self, character):
-        super().__init__()
-        self.character = character
-        self.initUI()
-
-    def initUI(self):
-        overall_label = QLabel('==DESCRIPTION==')
-        overall_label.setStyleSheet("QLabel {font: 13pt;}")
-        
-        self.text = basicUI.TextBoxEntry(self.character, 'description', False)
-
-        stats = ['age', 'apparant age', 'sex', 'race', 'hair', 'eyes', 'height', 'weight']
-        self.items = {}
-
-        for stat in stats:
-            self.items[stat] = basicUI.Label_Entry_Combo(self.character, stat)
-        
-
-        grid = QGridLayout()
-        self.setLayout(grid)
-        grid.setAlignment(Qt.AlignTop)
-
-        grid.addWidget(overall_label, 0, 0, 1, 2)
-        grid.setAlignment(overall_label, Qt.AlignHCenter)
-        grid.addWidget(self.text, 1, 0, 1, 2)
-        grid.setAlignment(self.text, Qt.AlignHCenter)
-
-        row = 2
-        col = 0
-        for stat in stats:
-            grid.addWidget(self.items[stat], row, col)
-            if stat == 'race':
-                row = 2
-                col = 1
-            else:
-                row += 1
-
-    def edit_toggle(self):
-        self.text.edit_toggle()
-        for stat in self.items:
-            self.items[stat].edit_toggle()
     
 
 if __name__ == '__main__':
