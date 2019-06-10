@@ -1,0 +1,10 @@
+runDicecord.py
+runTest.py
+saver.py
+__pycache__/
+*.xml
+*.json
+.idea/*
+saver.py
+Dicecord.png
+Dicecord-white.png
