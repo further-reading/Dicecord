@@ -2,7 +2,8 @@
 #    Copyright (C) 2017  Roy Healy
 
 
-import sip, stats
+import sip
+import stats
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
@@ -889,7 +890,7 @@ class Stat(QWidget):
             return
         
         label, tooltip, ok = Label_Tooltip_Dialog.get_input(wintitle = "Add Specialty/Notes", title="spec##", tooltip=self.tooltip)
-		
+
         if ok:
             self.character.stats['skill specialties'][self.name] = tooltip
             self.tooltip = tooltip
@@ -969,8 +970,8 @@ class Dot(QAbstractButton):
         '''
         Checks if dot is currently filled and draws appropiate image.
         '''
-        filled = r"images\filled.png"
-        unfilled = r"images\unfilled.png"
+        filled = r"images/filled.png"
+        unfilled = r"images/unfilled.png"
 
         
         if self.filled:
@@ -998,10 +999,10 @@ class Square(QAbstractButton):
         self.group = None
         self.setCursor(QCursor(Qt.PointingHandCursor))
         
-        self.squares = {0: r"images\square_unfilled.png",
-                        1: r"images\square_one.png",
-                        2: r"images\square_two.png",
-                        3: r"images\square_full.png",
+        self.squares = {0: r"images/square_unfilled.png",
+                        1: r"images/square_one.png",
+                        2: r"images/square_two.png",
+                        3: r"images/square_full.png",
                         }
         self.select_Image()
 

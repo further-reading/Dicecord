@@ -6,6 +6,7 @@ import mageUI, vampireUI, stats
 from xml.dom import minidom
 from xml.etree.ElementTree import Element
 from xml.etree import ElementTree as etree
+import json
 
 class Character:
     def __init__(self,
@@ -281,6 +282,19 @@ class Character:
         f.write(text)
         f.close()
 
+    def save_json(self, path):
+        output_json = {}
+        output_json['stats'] = self.stats
+        output_json['goodMessages'] = self.goodMessages
+        output_json['badMessages'] = self.badMessages
+        output_json['goodrate'] = self.goodRate
+        output_json['badrate'] = self.badRate
+        output_json['notes'] = self.notes
+        output_json['splat'] = self.splat
+
+        with open(path, 'w') as file:
+            pass
+
     @classmethod
     def from_xml(cls, path):
         '''
@@ -377,6 +391,19 @@ class Character:
         char.badRate = int(badRate.text)
 
         return char
+
+    @classmethod
+    def from_json(cls, path):
+        data = json.loads(path)
+        return cls(
+            stats=data.get('stats'),
+            goodMessages=data.get('goodMessages'),
+            badMessages=data.get('badMessages'),
+            goodrate=int(data.get('goodrate')),
+            badrate=int(data.get('badrate')),
+            notes=data.get('notes'),
+            splat=data.get('splat'),
+        )
 
 
     def roll_set(self, dice, rote=False, again=10, quiet=False):

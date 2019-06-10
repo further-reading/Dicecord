@@ -26,7 +26,7 @@ class Intro(QWidget):
         self.setFixedSize(500, 200)
 
     def initUI(self):
-        QFontDatabase.addApplicationFont(r"font\Magra-Regular.ttf")
+        QFontDatabase.addApplicationFont(r"FONT/Magra-Regular.ttf")
         buttonstyle = """QPushButton {font-family: \"Magra\";
                                         font-size: 17px;
                                         color: white;
@@ -102,7 +102,7 @@ class New_Character_Dialog(QDialog):
         self.grid = QGridLayout()
         self.setLayout(self.grid)
         self.setWindowTitle('New Character')
-        self.setWindowIcon((QIcon(r'images\D10.ico')))
+        self.setWindowIcon((QIcon(r'images/D10.ico')))
 
         splat_label = QLabel("==Character Type==")
         splat_label.setStyleSheet("QLabel { font: 13pt}")
@@ -217,11 +217,11 @@ class Main(QMainWindow):
         
     def initUI(self):
         self.setWindowTitle('Dicecord')
-        self.setWindowIcon(QIcon(r'images\D10.ico'))
+        self.setWindowIcon(QIcon(r'images/D10.ico'))
         self.setCentralWidget(Intro(self))
         self.setFixedSize(500, 200)
 
-        image = QImage(r"images\splash.png")
+        image = QImage(r"images/splash.png")
         palette = QPalette()
         palette.setBrush(10, QBrush(image))
 
@@ -244,22 +244,22 @@ class Main(QMainWindow):
         # toolbar
         self.toolbar = self.addToolBar("Actions")
         ## roller
-        roller_Action = QAction(QIcon(r'images\D10.ico'), 'Roll', self)
+        roller_Action = QAction(QIcon(r'images/D10.ico'), 'Roll', self)
         roller_Action.setShortcut('Ctrl+R')
         roller_Action.triggered.connect(self.open_roller)
         self.toolbar.addAction(roller_Action)
 
         ## edit mode
-        self.edit_Action = QAction(QIcon(r'images\edit.ico'), 'Edit', self)
+        self.edit_Action = QAction(QIcon(r'images/edit.ico'), 'Edit', self)
         self.edit_Action.triggered.connect(self.edit_mode)
         self.edit_Action.setCheckable(True)
         self.toolbar.addAction(self.edit_Action)
 
-        ## mage cast
-##        if self.character.splat == 'mage':
-##            self.cast_Action = QAction(QIcon(INSERTPATH), 'Cast', self)
-##            self.cast_Action.triggered.connect(mageUI.castWindow)
-##            self.toolbar.addAction(self.cast_Action)
+        # mage cast
+#        if self.character.splat == 'mage':
+#            self.cast_Action = QAction(QIcon(INSERTPATH), 'Cast', self)
+#            self.cast_Action.triggered.connect(mageUI.castWindow)
+#            self.toolbar.addAction(self.cast_Action)
 
         # file menu
         menubar = self.menuBar()
@@ -319,7 +319,7 @@ class Main(QMainWindow):
         splat, computer, drive, firearms, ok = New_Character_Dialog.set_UI(self)
 
         if ok:
-            self.character = Character(splat = splat)
+            self.character = Character(splat=splat)
             
             # remove modern defaults
             del self.character.stats['computer']
@@ -343,7 +343,7 @@ class Main(QMainWindow):
             message = QMessageBox()
             message.setWindowTitle("Error")
             message.setIcon(QMessageBox.Critical)
-            message.setWindowIcon(QIcon(r'images\D10.ico'))
+            message.setWindowIcon(QIcon(r'images/D10.ico'))
             message.setText("Unable to connect to server.")
             message.setInformativeText("Error Code: " + e.code)
             message.addButton("Okay", QMessageBox.AcceptRole)
@@ -352,7 +352,7 @@ class Main(QMainWindow):
         except urllib.error.URLError:
             message = QMessageBox()
             message.setWindowTitle("Error")
-            message.setWindowIcon(QIcon(r'images\D10.ico'))
+            message.setWindowIcon(QIcon(r'images/D10.ico'))
             message.setIcon(QMessageBox.Critical)
             message.setText("Unable to connect to server.")
             message.setInformativeText("Please try again later.")
@@ -364,7 +364,7 @@ class Main(QMainWindow):
         version = str(version)[1:].replace("'", "")
         if version == VERSION:
             message = QMessageBox()
-            message.setWindowIcon(QIcon(r'images\D10.ico'))
+            message.setWindowIcon(QIcon(r'images/D10.ico'))
             message.setWindowTitle("Up to Date")
             message.setIcon(QMessageBox.Information)
             message.setText("You are using the latest version.")
@@ -374,7 +374,7 @@ class Main(QMainWindow):
         else:
             message = QMessageBox()
             message.setWindowTitle("Update available")
-            message.setWindowIcon(QIcon(r'images\D10.ico'))
+            message.setWindowIcon(QIcon(r'images/D10.ico'))
             message.setIcon(QMessageBox.Warning)
             message.setText("Do you want to update to version " + version + "?")
             message.addButton("Yes", QMessageBox.AcceptRole)
@@ -429,7 +429,7 @@ class Main(QMainWindow):
     def ask_save(self, new = False):
         message = QMessageBox()
         message.setWindowTitle("Save Changes")
-        message.setWindowIcon(QIcon(r'images\D10.ico'))
+        message.setWindowIcon(QIcon(r'images/D10.ico'))
         message.setIcon(QMessageBox.Question)
         message.setText("Do you want to export changes?")
         if not new:
@@ -469,27 +469,32 @@ class Main(QMainWindow):
 
         if self.path == None or save_as:
             # open filedialog to get path
-            fname = QFileDialog.getSaveFileName(self, 'Save file', path, "XML Files (*.xml)")
+            fname = QFileDialog.getSaveFileName(self, 'Save file', path, "JSON Files (*.json)")
             if fname[0] == '':
                 # nothing chosen, end function
                 return
             
             self.path = fname[0]
 
-        self.character.save_xml(self.path)
+        self.character.save_json(self.path)
         
         # set as old_character copy for detecting further changes on quit
         self.old_character = copy.deepcopy(self.character)
 
     def import_character(self):
-        fname = QFileDialog.getOpenFileName(self, 'Open file', "characters/", "XML Files (*.xml)")
+        fname = QFileDialog.getOpenFileName(self, 'Open file', "characters/")
         
         if fname[0] == '':
             return
 
         self.path = fname[0]
-
-        self.character = Character.from_xml(self.path)
+        if self.path.endswith('xml'):
+            self.character = Character.from_xml(self.path)
+        elif self.path.endwith('json'):
+            self.character = Character.from_json(self.path)
+        else:
+            # add error dialog
+            return
         # set as old_character copy for detecting further changes on quit
         self.old_character = copy.deepcopy(self.character)
 
@@ -502,7 +507,7 @@ class Main(QMainWindow):
         self.dialog.show()
 
     def about_display(self):
-        file = open(r'LICENSE\ABOUT.txt', 'r')
+        file = open(r'LICENSE/ABOUT.txt', 'r')
         content = file.read()
         file.close()
         box = QLabel(content)
@@ -528,7 +533,7 @@ class Main(QMainWindow):
             # unsaved changes
             message = QMessageBox()
             message.setWindowTitle("Save Changes")
-            message.setWindowIcon(QIcon(r'images\D10.ico'))
+            message.setWindowIcon(QIcon(r'images/D10.ico'))
             message.setIcon(QMessageBox.Question)
             message.setText("Do you want to save changes before exiting?")
             message.addButton("Yes", QMessageBox.AcceptRole)
@@ -709,7 +714,7 @@ class Roller(QMainWindow):
     def initUI(self):
         
         self.setWindowTitle('Roll Dice')
-        self.setWindowIcon(QIcon(r'images\D10.ico'))
+        self.setWindowIcon(QIcon(r'images/D10.ico'))
         
 
         # add status bar and change its style sheet
@@ -738,7 +743,7 @@ class Roller(QMainWindow):
         app.processEvents()
 
     def about_display(self):
-        file = open(r'LICENSE\ABOUT.txt', 'r')
+        file = open(r'LICENSE/ABOUT.txt', 'r')
         content = file.read()
         file.close()
         box = QLabel(content)
@@ -757,7 +762,7 @@ class New_Window(QMainWindow):
 
     def initUI(self):
         self.setWindowTitle(self.title)
-        self.setWindowIcon(QIcon(r'images\D10.ico'))       
+        self.setWindowIcon(QIcon(r'images/D10.ico'))
         self.setCentralWidget(self.cent_widget)
         self.statusbar = self.statusBar()
         self.statusbar.setStyleSheet("QStatusBar{border-top: 1px outset grey;}")
