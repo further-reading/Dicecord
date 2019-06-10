@@ -9,13 +9,11 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 import basicUI
 import mageUI
-import player
-import sys
 
 class InventorySheet(QWidget):
-    '''
+    """
     Inventory Sheet
-    '''
+    """
 
     def __init__(self, character, stats_sheet):
         super().__init__()
@@ -33,6 +31,8 @@ class InventorySheet(QWidget):
         # Praxes
         self.praxes = Praxes(self.character)
 
+        # Physical description
+        self.description = basicUI.Description(self.character)
         # Rotes
         self.rotes = Rotes(self.character)
         # Nimbus
@@ -57,6 +57,8 @@ class InventorySheet(QWidget):
         # right side
         rcol = QVBoxLayout()
         rcol.setAlignment(Qt.AlignTop)
+        rcol.addWidget(self.description)
+        rcol.setAlignment(self.description, Qt.AlignHCenter | Qt.AlignTop)
         rcol.addWidget(self.rotes)
         rcol.addWidget(self.nimbus)
         rcol.setAlignment(self.nimbus, Qt.AlignHCenter | Qt.AlignTop)
@@ -115,7 +117,10 @@ class Praxes(QWidget):
         for name in self.character.stats['praxes']:
             self.praxes[self.row] = {'name': name}
             details = self.character.stats['praxes'][name]
-            tooltip = details['tooltip']
+            try:
+                tooltip = details['tooltip']
+            except KeyError:
+                tooltip = details['tooltip'] = ''
             arcanum = details['arcanum']
 
             # item name
@@ -179,7 +184,17 @@ class Praxes(QWidget):
 
     def edit_entry(self, index=None):
         if not self.character.edit_mode:
-            # do nothing
+            # View only
+            current = self.praxes[index]
+            current_name = current['name']
+            current_details = self.character.stats['praxes'][current_name]
+
+            current_tooltip = current_details['tooltip']
+            current_arcanum = current_details['arcanum']
+            basicUI.ViewDialogue("Praxis",
+                                 name=current_name,
+                                 arcanum=current_arcanum.title(),
+                                 details=current_tooltip)
             return
 
         if not index:
@@ -301,7 +316,7 @@ class Praxis_Dialog(QDialog):
         self.arcanum = arcanum
 
         self.initUI()
-        self.setMaximumSize(20, 20)
+        # self.setMaximumSize(20, 20)
 
     def initUI(self):
         self.grid = QGridLayout()
@@ -488,7 +503,17 @@ class Ench_Items(QWidget):
 
     def edit_entry(self, index=None):
         if not self.character.edit_mode:
-            # can't change unless edit mode
+            # View only
+            current = self.items[index]
+            current_name = current[1].text().lower()
+            current_details = self.character.stats['ench items'][current_name]
+
+            current_type = current_details['type']
+            current_tooltip = current_details['tooltip']
+            basicUI.ViewDialogue("Enchanted Item",
+                                 name=current_name,
+                                 type=current_type.title(),
+                                 details=current_tooltip)
             return
 
         if not index:
@@ -631,7 +656,6 @@ class EnchItem_Dialog(QDialog):
         self.edit = edit
 
         self.initUI()
-        self.setMaximumSize(20, 20)
 
     def initUI(self):
         self.grid = QGridLayout()
@@ -792,7 +816,10 @@ class Rotes(QWidget):
         for rote in self.character.stats['rotes']:
             self.rotes[self.row] = []
             rote_details = self.character.stats['rotes'][rote]
-            tooltip = rote_details['tooltip']
+            try:
+                tooltip = rote_details['tooltip']
+            except KeyError:
+                tooltip = rote_details['tooltip'] = ''
             arcanum = rote_details['arcanum']
             skill = rote_details['skill']
 
@@ -884,7 +911,19 @@ class Rotes(QWidget):
 
     def edit_entry(self, index=None):
         if not self.character.edit_mode:
-            # no changes unless edit mode
+            # View only
+            current = self.rotes[index]
+            current_title = current[0].text()
+            current_tooltip = current[0].toolTip()
+
+            # The labels are edited, so skill and arcanum taken from character's rote entry
+            current_arcanum = self.character.stats['rotes'][current_title.lower()]['arcanum']
+            current_skill = self.character.stats['rotes'][current_title.lower()]['skill']
+            basicUI.ViewDialogue("Rote",
+                                 name = current_title,
+                                 arcanum = current_arcanum.title(),
+                                 skill = current_skill.title(),
+                                 details = current_tooltip)
             return
 
         if not index:
@@ -1073,8 +1112,9 @@ class Rote_Dialog(QDialog):
                                          Qt.Horizontal, self)
             buttonBox.button(QDialogButtonBox.Discard).clicked.connect(self.del_item)
             buttonBox.button(QDialogButtonBox.Discard).setText("Delete")
+
         else:
-            # adding new - only okay and cancel button
+            # adding new or viewing - only okay and cancel button
             buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal, self)
 
         buttonBox.accepted.connect(self.accept)

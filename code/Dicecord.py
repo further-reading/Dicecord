@@ -11,7 +11,6 @@ import http.client, time, sys, copy, random, ctypes
 import urllib.error
 import urllib.request
 from player import Character
-import stats
 import mageUI, mageInventory
 import vampireUI, vampireInventory
 
@@ -29,7 +28,7 @@ class Intro(QWidget):
     def initUI(self):
         QFontDatabase.addApplicationFont(r"font\Magra-Regular.ttf")
         buttonstyle = """QPushButton {font-family: \"Magra\";
-                                        font-size: 13pt;
+                                        font-size: 17px;
                                         color: white;
                                         background-color: #7289da;
                                         border-style: inset;
@@ -1120,7 +1119,22 @@ def send(message, webhook, parent):
             # already a 1 second delay between messages, so extra secound added here
             time.sleep(1)
 
+def is_admin():
+    try:
+        return ctypes.windll.shell32.IsUserAnAdmin()
+    except:
+        return False
+
 if __name__ == '__main__':
         app = QApplication(sys.argv)
         Main()
         sys.exit(app.exec_())
+    
+    # check if admin
+    # if is_admin():
+    #     app = QApplication(sys.argv)
+    #     Main()
+    #     sys.exit(app.exec_())
+    # else:
+    #     # Re-run the program with admin rights
+    #     ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, "", None, 1)
